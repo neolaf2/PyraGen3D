@@ -1,16 +1,18 @@
 
 import React, { useRef } from 'react';
-import { TilePattern, PyramidBase, GenerationParams, LightDirection } from '../types';
-import { Sparkles, Palette, Maximize, Shapes, Wallpaper, Sun, Moon, Image as ImageIcon, Trash2, Upload } from 'lucide-react';
+import { TilePattern, PyramidBase, GenerationParams, LightDirection, ImageModelVersion, TextModelVersion } from '../types';
+import { Sparkles, Palette, Maximize, Shapes, Wallpaper, Sun, Moon, Image as ImageIcon, Trash2, Upload, Zap, Box, BrainCircuit, MessageSquareText } from 'lucide-react';
 
 interface Props {
   params: GenerationParams;
   setParams: React.Dispatch<React.SetStateAction<GenerationParams>>;
   onGenerate: () => void;
   isGenerating: boolean;
+  textModel: TextModelVersion;
+  setTextModel: (model: TextModelVersion) => void;
 }
 
-const ControlPanel: React.FC<Props> = ({ params, setParams, onGenerate, isGenerating }) => {
+const ControlPanel: React.FC<Props> = ({ params, setParams, onGenerate, isGenerating, textModel, setTextModel }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (key: keyof GenerationParams, value: any) => {
@@ -34,6 +36,75 @@ const ControlPanel: React.FC<Props> = ({ params, setParams, onGenerate, isGenera
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl dark:shadow-none flex flex-col gap-8 sticky top-4 transition-colors duration-300">
+      
+      {/* System Intelligence Section */}
+      <section>
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">
+          <BrainCircuit className="w-4 h-4 text-green-500" />
+          System Intelligence
+        </label>
+        
+        <div className="space-y-4">
+          {/* Visual Engine (Image Model) */}
+          <div className="space-y-1.5">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider ml-1">Visual Engine</span>
+            <div className="bg-slate-50 dark:bg-slate-800 p-1 rounded-xl flex gap-1 border border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => handleChange('modelVersion', 'gemini-2.5-flash-image')}
+                className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  params.modelVersion === 'gemini-2.5-flash-image'
+                  ? 'bg-white dark:bg-slate-700 text-green-600 dark:text-green-400 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                2.5 Flash
+              </button>
+              <button
+                onClick={() => handleChange('modelVersion', 'gemini-3-pro-image-preview')}
+                className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  params.modelVersion === 'gemini-3-pro-image-preview'
+                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                }`}
+              >
+                <Box className="w-3.5 h-3.5" />
+                3.0 Pro
+              </button>
+            </div>
+          </div>
+
+          {/* Architect Agent (Text Model) */}
+          <div className="space-y-1.5">
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider ml-1">Architect Agent</span>
+            <div className="bg-slate-50 dark:bg-slate-800 p-1 rounded-xl flex gap-1 border border-slate-200 dark:border-slate-700">
+              <button
+                onClick={() => setTextModel('gemini-3-flash-preview')}
+                className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  textModel === 'gemini-3-flash-preview'
+                  ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                3.0 Flash
+              </button>
+              <button
+                onClick={() => setTextModel('gemini-3-pro-preview')}
+                className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  textModel === 'gemini-3-pro-preview'
+                  ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+                }`}
+              >
+                <MessageSquareText className="w-3.5 h-3.5" />
+                3.0 Pro
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div className="space-y-6">
         {/* Reference Guide Section */}
         <section>

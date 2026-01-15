@@ -79,9 +79,10 @@ const DocumentationModal: React.FC<Props> = ({ isOpen, onClose }) => {
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
             <h4 className="font-semibold text-slate-900 dark:text-slate-200 mb-3 text-sm uppercase tracking-widest">System Architecture</h4>
             <div className="flex flex-wrap gap-3">
-              <div className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-mono font-bold text-slate-500">GEMINI-2.5-IMAGE</div>
-              <div className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-mono font-bold text-slate-500">GEMINI-3-PRO</div>
-              <div className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-mono font-bold text-slate-500">GEMINI-2.5-TTS</div>
+              <div className="px-3 py-1 bg-green-100 dark:bg-green-900/30 rounded-lg text-[10px] font-mono font-bold text-green-600 dark:text-green-400">GEMINI-2.5-FLASH</div>
+              <div className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400">GEMINI-3.0-PRO-IMAGE</div>
+              <div className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-[10px] font-mono font-bold text-purple-600 dark:text-purple-400">GEMINI-3.0-PRO-TXT</div>
+              <div className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-mono font-bold text-slate-500">GEMINI-3.0-FLASH-TXT</div>
             </div>
           </div>
         </div>

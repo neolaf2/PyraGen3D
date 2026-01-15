@@ -1,11 +1,12 @@
 
 import { GoogleGenAI, Modality } from "@google/genai";
-import { GenerationParams, SupportedLanguage } from "../types";
+import { GenerationParams, SupportedLanguage, TextModelVersion } from "../types";
 
 const APP_DOCUMENTATION = `
 PyraGen 3D Tile Architect Documentation:
 - Purpose: Generates 3D isometric architectural renders of pyramids made of stacked boxes/tiles.
 - Controls:
+  * Model Engine: Select between "2.5 Flash" (faster) or "3.0 Pro" (higher quality).
   * Levels: Controls the height of the pyramid (2 to 15 levels).
   * Base Scale: Controls the horizontal footprint (3x3 to 20x20 scale).
   * Base Geometry: Choose between Square or Triangular bases.
@@ -59,14 +60,22 @@ export const generatePyramidImage = async (params: GenerationParams): Promise<st
     }
   }
 
+  const modelVersion = params.modelVersion || 'gemini-3-pro-image-preview';
+
+  // Only the Pro model supports the `imageSize` configuration
+  const imageConfig: any = {
+    aspectRatio: "1:1",
+  };
+  if (modelVersion === 'gemini-3-pro-image-preview') {
+    imageConfig.imageSize = "1K";
+  }
+
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: modelVersion,
       contents: { parts },
       config: {
-        imageConfig: {
-          aspectRatio: "1:1"
-        }
+        imageConfig
       },
     });
 
@@ -93,13 +102,19 @@ export const editPyramidImage = async (base64Image: string, editPrompt: string):
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: 'gemini-3-pro-image-preview',
       contents: {
         parts: [
           { inlineData: { mimeType, data } },
           { text: `Edit this 3D architectural render based on this request: ${editPrompt}. Maintain the 3D pyramid structure but apply the changes requested.` }
         ]
       },
+      config: {
+        imageConfig: {
+          aspectRatio: "1:1",
+          imageSize: "1K"
+        }
+      }
     });
 
     for (const part of response.candidates?.[0]?.content?.parts || []) {
@@ -114,10 +129,15 @@ export const editPyramidImage = async (base64Image: string, editPrompt: string):
   }
 };
 
-export const getChatResponse = async (userMessage: string, history: any[], language: SupportedLanguage = 'English') => {
+export const getChatResponse = async (
+  userMessage: string, 
+  history: any[], 
+  language: SupportedLanguage = 'English', 
+  modelVersion: TextModelVersion = 'gemini-3-flash-preview'
+) => {
   const ai = new GoogleGenAI({ apiKey: getApiKey() });
   const chat = ai.chats.create({
-    model: 'gemini-3-pro-preview',
+    model: modelVersion,
     config: {
       systemInstruction: `You are an expert architectural consultant for the PyraGen 3D Tile Architect app.
       CRITICAL: You must respond ONLY in the following language: ${language}.

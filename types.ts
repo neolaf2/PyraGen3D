@@ -19,6 +19,10 @@ export type LightDirection = 'Top-Down' | 'Side-lit' | 'Frontal' | 'High-Contras
 
 export type SupportedLanguage = 'English' | 'Chinese' | 'Spanish' | 'Korean';
 
+export type ImageModelVersion = 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview';
+
+export type TextModelVersion = 'gemini-3-flash-preview' | 'gemini-3-pro-preview';
+
 export interface GenerationParams {
   levels: number;
   baseSize: number;
@@ -30,6 +34,7 @@ export interface GenerationParams {
   lightIntensity: number;
   shadowsEnabled: boolean;
   referenceImage?: string; // Base64 encoded image
+  modelVersion: ImageModelVersion;
 }
 
 export interface GenerationHistory {

@@ -10,14 +10,15 @@ import {
   GenerationParams, 
   GenerationHistory,
   ChatMessage,
-  SupportedLanguage 
+  SupportedLanguage,
+  TextModelVersion
 } from './types';
 import { generatePyramidImage, getChatResponse, generateSpeechData, playAudio } from './services/geminiService';
 import ControlPanel from './components/ControlPanel';
 import ImageDisplay from './components/ImageDisplay';
 import HistorySidebar from './components/HistorySidebar';
 import DocumentationModal from './components/DocumentationModal';
-import { Layers, Info, MessageSquare, Send, Volume2, X, HelpCircle, Square, Play, RotateCcw, Loader2, VolumeX, Languages, Sun, Moon } from 'lucide-react';
+import { Layers, Info, MessageSquare, Send, Volume2, X, HelpCircle, Square, Play, RotateCcw, Loader2, VolumeX, Languages, Sun, Moon, Zap } from 'lucide-react';
 
 const TypewriterText: React.FC<{ 
   text: string; 
@@ -77,6 +78,7 @@ const App: React.FC = () => {
     lightDirection: 'Top-Down',
     lightIntensity: 80,
     shadowsEnabled: true,
+    modelVersion: 'gemini-3-pro-image-preview',
   });
 
   const [currentImage, setCurrentImage] = useState<string | null>(null);
@@ -90,6 +92,7 @@ const App: React.FC = () => {
   const [userMsg, setUserMsg] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>('English');
+  const [textModel, setTextModel] = useState<TextModelVersion>('gemini-3-flash-preview');
   
   const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
   const [typewriterResetKeys, setTypewriterResetKeys] = useState<Record<string, number>>({});
@@ -181,7 +184,7 @@ const App: React.FC = () => {
     setIsChatLoading(true);
 
     try {
-      const responseText = await getChatResponse(msgText, chatMessages, selectedLanguage);
+      const responseText = await getChatResponse(msgText, chatMessages, selectedLanguage, textModel);
       const audioData = await generateSpeechData(responseText);
       const modelId = (Date.now() + 1).toString();
       
@@ -302,7 +305,14 @@ const App: React.FC = () => {
         <div className="flex-1 overflow-y-auto custom-scrollbar relative z-0">
           <div className="flex flex-col xl:flex-row p-4 md:p-8 gap-8 max-w-7xl mx-auto w-full">
             <div className="w-full xl:w-96 shrink-0">
-              <ControlPanel params={params} setParams={setParams} onGenerate={() => handleGenerate()} isGenerating={isGenerating} />
+              <ControlPanel 
+                params={params} 
+                setParams={setParams} 
+                onGenerate={() => handleGenerate()} 
+                isGenerating={isGenerating} 
+                textModel={textModel}
+                setTextModel={setTextModel}
+              />
             </div>
 
             <div className="flex-1 flex flex-col gap-6">
