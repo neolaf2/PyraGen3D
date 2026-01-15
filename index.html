@@ -9,28 +9,49 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
   <script>
-    // Global shim for process.env to prevent ReferenceErrors if the environment doesn't provide it
-    if (typeof window.process === 'undefined') {
-      window.process = { env: { API_KEY: "" } };
+    // Tailwind configuration for class-based dark mode
+    tailwind.config = {
+      darkMode: 'class',
+    }
+    
+    // Global shim for process.env
+    window.process = window.process || {};
+    window.process.env = window.process.env || {};
+    if (typeof window.process.env.API_KEY === 'undefined') {
+      window.process.env.API_KEY = "";
     }
   </script>
   <style>
     body {
       font-family: 'Inter', sans-serif;
-      background-color: #0f172a;
-      color: #f8fafc;
       margin: 0;
       padding: 0;
+      min-height: 100vh;
+    }
+    #root:empty::after {
+      content: 'Initializing PyraGen System...';
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 0.875rem;
+      color: #94a3b8;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
     }
     .custom-scrollbar::-webkit-scrollbar {
       width: 6px;
     }
     .custom-scrollbar::-webkit-scrollbar-track {
-      background: #1e293b;
+      background: transparent;
     }
     .custom-scrollbar::-webkit-scrollbar-thumb {
-      background: #475569;
+      background: #cbd5e1;
       border-radius: 10px;
+    }
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
     }
 
     /* Markdown & LaTeX Styling */
@@ -43,18 +64,20 @@
     .prose-chat ul, .prose-chat ol { margin-bottom: 0.5rem; padding-left: 1.25rem; }
     .prose-chat li { margin-bottom: 0.25rem; }
     .prose-chat code { 
-      background: rgba(255,255,255,0.1); 
+      background: rgba(0,0,0,0.05); 
       padding: 0.1rem 0.3rem; 
       border-radius: 0.25rem; 
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     }
+    .dark .prose-chat code { background: rgba(255,255,255,0.1); }
     .prose-chat pre {
-      background: #1e293b;
+      background: #f1f5f9;
       padding: 0.75rem;
       border-radius: 0.5rem;
       overflow-x: auto;
       margin-bottom: 0.5rem;
     }
+    .dark .prose-chat pre { background: #1e293b; }
     .prose-chat table {
       width: 100%;
       border-collapse: collapse;
@@ -62,11 +85,13 @@
       font-size: 0.75rem;
     }
     .prose-chat th, .prose-chat td {
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 1px solid rgba(0,0,0,0.1);
       padding: 0.4rem;
       text-align: left;
     }
-    .prose-chat th { background: rgba(255,255,255,0.05); }
+    .dark .prose-chat th, .dark .prose-chat td { border: 1px solid rgba(255,255,255,0.1); }
+    .prose-chat th { background: rgba(0,0,0,0.02); }
+    .dark .prose-chat th { background: rgba(255,255,255,0.05); }
     
     .katex-display {
       margin: 0.5em 0;
@@ -74,7 +99,6 @@
       overflow-y: hidden;
     }
 
-    /* Simple Fade-in for the chat window since tailwindcss-animate might not be available via CDN */
     .chat-fade-in {
       animation: fadeIn 0.3s ease-out;
     }
@@ -86,21 +110,23 @@
 <script type="importmap">
 {
   "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
     "react": "https://esm.sh/react@^19.2.3",
+    "react-dom": "https://esm.sh/react-dom@^19.2.3",
+    "react-dom/client": "https://esm.sh/react-dom@^19.2.3/client",
     "@google/genai": "https://esm.sh/@google/genai@^1.36.0",
     "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react-dom": "https://esm.sh/react-dom@^19.2.3",
     "react-markdown": "https://esm.sh/react-markdown@^9.0.1",
     "remark-gfm": "https://esm.sh/remark-gfm@^4.0.0",
     "remark-math": "https://esm.sh/remark-math@^6.0.0",
-    "rehype-katex": "https://esm.sh/rehype-katex@^7.0.0"
+    "rehype-katex": "https://esm.sh/rehype-katex@^7.0.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>
 </head>
-<body>
+<body class="bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
   <div id="root"></div>
+  <script type="module" src="./index.tsx"></script>
 </body>
 </html>

@@ -27,12 +27,8 @@ const ImageDisplay: React.FC<Props> = ({ imageUrl, isGenerating, error, params, 
 
   const handleShare = () => {
     if (!imageUrl) return;
-    
-    // Construct a shareable URL by encoding params (excluding referenceImage to avoid length issues)
     const { referenceImage, ...shareableParams } = params;
     const configString = btoa(JSON.stringify(shareableParams));
-    
-    // Use href split to get the base URL robustly, avoiding issues with origin/pathname duplication in some environments
     const baseUrl = window.location.href.split('?')[0];
     const shareUrl = `${baseUrl}?config=${configString}`;
     
@@ -61,13 +57,13 @@ const ImageDisplay: React.FC<Props> = ({ imageUrl, isGenerating, error, params, 
   return (
     <div className="flex flex-col gap-4">
       <div className="relative group">
-        <div className="aspect-square w-full bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden relative shadow-2xl transition-all">
+        <div className="aspect-square w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden relative shadow-2xl transition-all duration-300">
           {(isGenerating || isEditing) && (
-            <div className="absolute inset-0 z-20 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4 text-center px-6">
+            <div className="absolute inset-0 z-20 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4 text-center px-6">
               <Loader2 className="w-16 h-16 text-blue-500 animate-spin" />
               <div className="space-y-2">
-                <h4 className="text-xl font-bold text-white">{isEditing ? 'Refining Architecture' : 'Synthesizing Geometry'}</h4>
-                <p className="text-slate-400 text-sm max-w-xs">
+                <h4 className="text-xl font-bold text-slate-900 dark:text-white">{isEditing ? 'Refining Architecture' : 'Synthesizing Geometry'}</h4>
+                <p className="text-slate-500 dark:text-slate-400 text-sm max-w-xs">
                   {isEditing ? `Applying: "${editPrompt}"` : `Assembling ${params.levels} levels...`}
                 </p>
               </div>
@@ -75,14 +71,14 @@ const ImageDisplay: React.FC<Props> = ({ imageUrl, isGenerating, error, params, 
           )}
 
           {error && (
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-red-400 gap-3 px-8 text-center bg-red-950/20 backdrop-blur-md">
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-red-500 gap-3 px-8 text-center bg-red-50/50 dark:bg-red-950/20 backdrop-blur-md">
               <AlertCircle className="w-12 h-12 mb-2" />
               <p className="font-semibold">{error}</p>
             </div>
           )}
 
           {!imageUrl && !isGenerating && !error && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-500 gap-4">
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 gap-4">
               <Expand className="w-10 h-10 opacity-20" />
               <p className="text-sm font-medium">Configure and click Generate</p>
             </div>
@@ -99,23 +95,23 @@ const ImageDisplay: React.FC<Props> = ({ imageUrl, isGenerating, error, params, 
                 <button 
                   onClick={handleDownload}
                   title="Download Image"
-                  className="bg-slate-900/60 backdrop-blur-md hover:bg-slate-800 p-3 rounded-2xl text-white border border-white/10 transition-all hover:scale-105 active:scale-95"
+                  className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-md hover:bg-white dark:hover:bg-slate-800 p-3 rounded-2xl text-slate-900 dark:text-white border border-slate-200 dark:border-white/10 transition-all hover:scale-105"
                 >
                   <Download className="w-5 h-5" />
                 </button>
                 <button 
                   onClick={handleShare}
                   title="Share Design Link"
-                  className={`backdrop-blur-md p-3 rounded-2xl border transition-all hover:scale-105 active:scale-95 flex items-center gap-2 ${
+                  className={`backdrop-blur-md p-3 rounded-2xl border transition-all hover:scale-105 flex items-center gap-2 ${
                     isShared 
                     ? 'bg-green-600 border-green-400 text-white' 
-                    : 'bg-slate-900/60 hover:bg-slate-800 text-white border-white/10'
+                    : 'bg-white/80 dark:bg-slate-900/60 hover:bg-white dark:hover:bg-slate-800 text-slate-900 dark:text-white border-slate-200 dark:border-white/10'
                   }`}
                 >
                   {isShared ? (
                     <>
                       <CheckCircle2 className="w-5 h-5" />
-                      <span className="text-xs font-bold pr-1">Link Copied!</span>
+                      <span className="text-xs font-bold pr-1">Copied!</span>
                     </>
                   ) : (
                     <Share2 className="w-5 h-5" />
@@ -128,22 +124,22 @@ const ImageDisplay: React.FC<Props> = ({ imageUrl, isGenerating, error, params, 
       </div>
 
       {imageUrl && !isGenerating && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex gap-2">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex gap-2 shadow-md dark:shadow-none transition-colors duration-300">
           <input 
             type="text" 
-            placeholder="Edit render (e.g. 'Add a retro filter', 'Make it neon')"
+            placeholder="Edit render (e.g. 'Add snow', 'Make it cinematic')"
             value={editPrompt}
             onChange={(e) => setEditPrompt(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleEdit()}
-            className="flex-1 bg-slate-800 border border-slate-700 text-slate-300 text-sm rounded-xl px-4 py-2 outline-none focus:border-blue-500 transition-colors"
+            className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm rounded-xl px-4 py-2 outline-none focus:border-blue-500 transition-colors"
           />
           <button 
             onClick={handleEdit}
             disabled={isEditing || !editPrompt}
-            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 p-2 px-4 rounded-xl text-white transition-all flex items-center gap-2"
+            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 p-2 px-6 rounded-xl text-white font-bold transition-all flex items-center gap-2"
           >
             <Wand2 className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase tracking-wider hidden sm:inline">Refine</span>
+            <span className="text-xs uppercase tracking-wider hidden sm:inline">Refine</span>
           </button>
         </div>
       )}

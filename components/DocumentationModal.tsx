@@ -34,64 +34,64 @@ const DocumentationModal: React.FC<Props> = ({ isOpen, onClose }) => {
     {
       icon: <MessageSquare className="w-5 h-5 text-green-500" />,
       title: "AI Consultant",
-      content: "The chat consultant is trained on this documentation. Ask it for tips on color theory or how specific parameters interact."
+      content: "PyraTutor is trained on this documentation. Ask it for tips on color theory or how specific parameters interact."
     }
   ];
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div 
-        className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/80 backdrop-blur-sm transition-colors duration-300"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-800/50">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] transition-colors duration-300">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
           <div className="flex items-center gap-3">
             <HelpCircle className="w-6 h-6 text-blue-500" />
-            <h2 className="text-xl font-bold text-white">System Guide</h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Architectural Manual</h2>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-xl transition-colors text-slate-400 hover:text-white">
+          <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-white">
             <X className="w-6 h-6" />
           </button>
         </div>
         
         <div className="p-6 overflow-y-auto custom-scrollbar space-y-8">
-          <div className="bg-blue-600/10 border border-blue-500/20 rounded-2xl p-4">
-            <p className="text-blue-400 text-sm leading-relaxed">
-              Welcome to PyraGen 3D. This interface allows you to orchestrate complex geometric structures using generative AI. Follow the guide below to master the architecture controls.
+          <div className="bg-blue-50 dark:bg-blue-600/10 border border-blue-100 dark:border-blue-500/20 rounded-2xl p-4">
+            <p className="text-blue-700 dark:text-blue-400 text-sm leading-relaxed">
+              Welcome to PyraGen 3D. This interface allows you to orchestrate complex geometric structures using generative AI. Follow the guide below to master the controls.
             </p>
           </div>
 
           <div className="grid gap-6">
             {sections.map((s, i) => (
-              <div key={i} className="flex gap-4">
-                <div className="shrink-0 w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center">
+              <div key={i} className="flex gap-4 group">
+                <div className="shrink-0 w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center group-hover:scale-110 transition-transform">
                   {s.icon}
                 </div>
                 <div className="space-y-1">
-                  <h4 className="font-semibold text-slate-200">{s.title}</h4>
-                  <p className="text-slate-400 text-sm leading-relaxed">{s.content}</p>
+                  <h4 className="font-semibold text-slate-800 dark:text-slate-200">{s.title}</h4>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{s.content}</p>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="pt-4">
-            <h4 className="font-semibold text-slate-200 mb-3">Model Credits</h4>
-            <div className="flex gap-4 items-center">
-              <div className="px-3 py-1 bg-slate-800 rounded-lg text-[10px] font-mono text-slate-500">GEMINI-2.5-FLASH-IMAGE</div>
-              <div className="px-3 py-1 bg-slate-800 rounded-lg text-[10px] font-mono text-slate-500">GEMINI-3-PRO</div>
-              <div className="px-3 py-1 bg-slate-800 rounded-lg text-[10px] font-mono text-slate-500">GEMINI-2.5-TTS</div>
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+            <h4 className="font-semibold text-slate-900 dark:text-slate-200 mb-3 text-sm uppercase tracking-widest">System Architecture</h4>
+            <div className="flex flex-wrap gap-3">
+              <div className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-mono font-bold text-slate-500">GEMINI-2.5-IMAGE</div>
+              <div className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-mono font-bold text-slate-500">GEMINI-3-PRO</div>
+              <div className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-mono font-bold text-slate-500">GEMINI-2.5-TTS</div>
             </div>
           </div>
         </div>
 
-        <div className="p-6 border-t border-slate-800 bg-slate-900/50 flex justify-end">
+        <div className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end">
           <button 
             onClick={onClose}
-            className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded-xl transition-all"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-xl shadow-lg shadow-blue-500/20 transition-all active:scale-95"
           >
-            Got it, Architect
+            Acknowledge
           </button>
         </div>
       </div>
