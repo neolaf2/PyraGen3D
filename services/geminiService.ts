@@ -20,8 +20,12 @@ PyraGen 3D Tile Architect Documentation:
   * History: Previous designs are saved in the sidebar for the current session.
 `;
 
+const getApiKey = () => {
+  return typeof process !== 'undefined' ? process.env.API_KEY || "" : "";
+};
+
 export const generatePyramidImage = async (params: GenerationParams): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
   
   const textPrompt = `
     A high-quality 3D isometric architectural render of a pyramid structure built from stacked 3D cubes/boxes.
@@ -80,7 +84,7 @@ export const generatePyramidImage = async (params: GenerationParams): Promise<st
 };
 
 export const editPyramidImage = async (base64Image: string, editPrompt: string): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
   
   const match = base64Image.match(/^data:(image\/\w+);base64,(.+)$/);
   if (!match) throw new Error("Invalid image format");
@@ -111,7 +115,7 @@ export const editPyramidImage = async (base64Image: string, editPrompt: string):
 };
 
 export const getChatResponse = async (userMessage: string, history: any[], language: SupportedLanguage = 'English') => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
   const chat = ai.chats.create({
     model: 'gemini-3-pro-preview',
     config: {
@@ -140,9 +144,10 @@ export const generateSpeechData = async (text: string): Promise<string | null> =
     .replace(/\$[\s\S]*?\$/g, '')
     .replace(/\\begin\{.*?\}/g, '')
     .replace(/\\end\{.*?\}/g, '')
+    .replace(/\\/g, '')
     .trim();
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
@@ -158,11 +163,7 @@ export const generateSpeechData = async (text: string): Promise<string | null> =
     });
 
     const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (!audioData) {
-      console.warn("Speech generation returned empty audio data.");
-      return null;
-    }
-    return audioData;
+    return audioData || null;
   } catch (err) {
     console.error("Speech generation error detail:", err);
     return null;

@@ -232,13 +232,14 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-200 overflow-hidden">
-      <div className="hidden lg:block w-72 border-r border-slate-800 shrink-0 h-screen overflow-y-auto custom-scrollbar">
+      {/* History Sidebar */}
+      <div className="hidden lg:block w-72 border-r border-slate-800 shrink-0 h-screen overflow-y-auto custom-scrollbar bg-slate-900/40">
         <HistorySidebar history={history} onSelect={loadFromHistory} />
       </div>
 
       <main className="flex-1 flex flex-col relative h-screen overflow-hidden">
         {/* Sticky Header - Always on top */}
-        <header className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900/90 backdrop-blur-md sticky top-0 z-[60] w-full shrink-0">
+        <header className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900/95 backdrop-blur-md sticky top-0 z-[60] w-full shrink-0">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-lg shadow-lg shadow-blue-500/20">
               <Layers className="w-5 h-5 text-white" />
@@ -257,7 +258,7 @@ const App: React.FC = () => {
               onClick={toggleChat} 
               className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all border font-medium text-sm ${
                 isChatOpen 
-                ? 'bg-blue-600 text-white border-blue-400' 
+                ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.4)]' 
                 : 'bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border-blue-500/20'
               }`}
             >
@@ -268,8 +269,8 @@ const App: React.FC = () => {
         </header>
 
         {/* Scrollable Main Content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="flex flex-col xl:flex-row p-4 md:p-8 gap-8">
+        <div className="flex-1 overflow-y-auto custom-scrollbar relative z-0">
+          <div className="flex flex-col xl:flex-row p-4 md:p-8 gap-8 max-w-7xl mx-auto w-full">
             <div className="w-full xl:w-96 shrink-0">
               <ControlPanel params={params} setParams={setParams} onGenerate={() => handleGenerate()} isGenerating={isGenerating} />
             </div>
@@ -277,13 +278,13 @@ const App: React.FC = () => {
             <div className="flex-1 flex flex-col gap-6">
               <ImageDisplay imageUrl={currentImage} isGenerating={isGenerating} error={error} params={params} setCurrentImage={setCurrentImage} />
               
-              <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
+              <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 shadow-sm">
                 <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                   <Info className="w-5 h-5 text-blue-500" />
                   Architectural Studio
                 </h3>
                 <p className="text-slate-400 text-sm leading-relaxed">
-                  PyraGen combines advanced generative AI with granular lighting controls. Use <b>PyraTutor</b> to refine your design theory or learn more about tile patterns.
+                  PyraGen combines advanced generative AI with granular lighting controls. Use <b>PyraTutor</b> to refine your design theory or learn more about tile patterns and geometric formulas.
                 </p>
               </div>
             </div>
@@ -292,17 +293,17 @@ const App: React.FC = () => {
           <div className="h-24 lg:hidden" />
         </div>
 
-        {/* Chatbot Overlay - FIXED POSITION so it floats above everything */}
+        {/* Chatbot Overlay - FIXED POSITION above content */}
         {isChatOpen && (
-          <div className="fixed bottom-4 right-4 w-[calc(100%-2rem)] md:w-[400px] max-h-[calc(100vh-6rem)] h-[600px] bg-slate-900 border border-slate-700/50 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.6)] flex flex-col z-[100] overflow-hidden animate-in slide-in-from-bottom-10 duration-300">
-            <div className="p-4 border-b border-slate-800 bg-slate-800/80 backdrop-blur-md flex items-center justify-between">
+          <div className="fixed bottom-4 right-4 w-[calc(100%-2rem)] md:w-[420px] max-h-[calc(100vh-6rem)] h-[650px] bg-slate-900 border border-slate-700/60 rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.8)] flex flex-col z-[100] overflow-hidden chat-fade-in">
+            <div className="p-4 border-b border-slate-800 bg-slate-800/90 backdrop-blur-md flex items-center justify-between">
               <div className="flex items-center gap-2 text-white font-medium">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
                 PyraTutor
               </div>
               <div className="flex items-center gap-2">
                 {/* Language Selector */}
-                <div className="relative group/lang flex items-center bg-slate-700/50 rounded-lg px-2 py-1 border border-slate-600">
+                <div className="relative group/lang flex items-center bg-slate-700/60 rounded-lg px-2 py-1 border border-slate-600">
                   <Languages className="w-3.5 h-3.5 text-slate-400 mr-1.5" />
                   <select 
                     value={selectedLanguage}
@@ -321,20 +322,20 @@ const App: React.FC = () => {
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar bg-slate-900/60">
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar bg-slate-900/80">
               {chatMessages.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-slate-500 text-center px-6">
-                  <div className="p-4 bg-blue-600/10 rounded-full mb-4 ring-1 ring-blue-500/20">
-                    <MessageSquare className="w-8 h-8 text-blue-500" />
+                <div className="h-full flex flex-col items-center justify-center text-slate-500 text-center px-8">
+                  <div className="p-5 bg-blue-600/10 rounded-full mb-5 ring-1 ring-blue-500/30">
+                    <MessageSquare className="w-10 h-10 text-blue-500" />
                   </div>
-                  <h3 className="text-white font-semibold mb-2">Hello, Architect!</h3>
-                  <p className="text-sm">I am <b>PyraTutor</b>. I can assist with 3D math, tile aesthetics, or general usage of PyraGen. How can I help today?</p>
+                  <h3 className="text-white font-semibold mb-2 text-lg">Hello, Architect!</h3>
+                  <p className="text-sm leading-relaxed">I am <b>PyraTutor</b>, your expert consultant. I can assist with 3D geometry math, tile aesthetics, or general usage of PyraGen. How can I help today?</p>
                 </div>
               )}
               {chatMessages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[90%] px-4 py-3 rounded-2xl relative group shadow-xl ${
-                    msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-800/90 backdrop-blur-sm border border-slate-700/40 text-slate-200 rounded-bl-none'
+                  <div className={`max-w-[92%] px-4 py-3 rounded-2xl relative group shadow-2xl ${
+                    msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-800/95 backdrop-blur-sm border border-slate-700/50 text-slate-200 rounded-bl-none'
                   }`}>
                     {msg.role === 'model' ? (
                       <div className="space-y-3">
@@ -344,14 +345,14 @@ const App: React.FC = () => {
                           onComplete={() => setTypingMessageId(null)} 
                           resetKey={typewriterResetKeys[msg.id] || 0}
                         />
-                        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-700/40">
+                        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-700/40">
                           {msg.audioBase64 && (
                             <button 
                               onClick={() => handleToggleAudio(msg)}
                               className={`p-1.5 rounded-lg transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${
                                 playingAudioId === msg.id 
-                                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/40' 
-                                : 'bg-slate-700/60 text-slate-300 hover:text-white hover:bg-slate-600'
+                                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/50' 
+                                : 'bg-slate-700/70 text-slate-300 hover:text-white hover:bg-slate-600'
                               }`}
                             >
                               {playingAudioId === msg.id ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
@@ -367,7 +368,7 @@ const App: React.FC = () => {
                                 setTypingMessageId(msg.id);
                               }
                             }}
-                            className="p-1.5 rounded-lg bg-slate-700/60 text-slate-300 hover:text-white hover:bg-slate-600 transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
+                            className="p-1.5 rounded-lg bg-slate-700/70 text-slate-300 hover:text-white hover:bg-slate-600 transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
                           >
                             {typingMessageId === msg.id ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                             {typingMessageId === msg.id ? 'Pause' : 'Replay'}
@@ -375,7 +376,7 @@ const App: React.FC = () => {
 
                           <button 
                             onClick={() => handleRestartTypewriter(msg.id)}
-                            className="p-1.5 rounded-lg bg-slate-700/60 text-slate-300 hover:text-white hover:bg-slate-600 transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
+                            className="p-1.5 rounded-lg bg-slate-700/70 text-slate-300 hover:text-white hover:bg-slate-600 transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
                             title="Restart text animation"
                           >
                             <RotateCcw className="w-3.5 h-3.5" />
@@ -391,30 +392,30 @@ const App: React.FC = () => {
               ))}
               {isChatLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-slate-800/80 px-4 py-3 rounded-2xl flex gap-1.5 items-center border border-slate-700/30">
+                  <div className="bg-slate-800/90 px-4 py-3 rounded-2xl flex gap-2 items-center border border-slate-700/50">
                     <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
-                    <span className="text-xs text-slate-400 font-medium italic">PyraTutor is formulating a response...</span>
+                    <span className="text-xs text-slate-400 font-medium italic">PyraTutor is generating response...</span>
                   </div>
                 </div>
               )}
               <div ref={chatEndRef} />
             </div>
 
-            <div className="p-4 border-t border-slate-800 bg-slate-900/90 backdrop-blur-md">
+            <div className="p-4 border-t border-slate-800 bg-slate-900/95 backdrop-blur-md">
               <div className="relative">
                 <input 
                   ref={chatInputRef}
                   type="text" 
-                  placeholder={`Discuss architecture in ${selectedLanguage}...`}
+                  placeholder={`Type in ${selectedLanguage}...`}
                   value={userMsg}
                   onChange={(e) => setUserMsg(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                  className="w-full bg-slate-800/80 border border-slate-700 text-white text-sm rounded-xl py-3 pl-4 pr-12 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-slate-500"
+                  className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-xl py-3.5 pl-4 pr-12 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-all placeholder:text-slate-500 shadow-inner"
                 />
                 <button 
                   onClick={handleSendMessage}
                   disabled={isChatLoading || !userMsg.trim()}
-                  className="absolute right-2 top-2 p-1.5 text-blue-500 hover:text-blue-400 disabled:opacity-30 transition-all"
+                  className="absolute right-2 top-2 p-2 text-blue-500 hover:text-blue-400 disabled:opacity-30 transition-all"
                 >
                   <Send className="w-5 h-5" />
                 </button>
@@ -426,13 +427,13 @@ const App: React.FC = () => {
         <DocumentationModal isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
       </main>
 
-      {/* History Bar for Mobile */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 h-20 border-t border-slate-800 bg-slate-900/95 backdrop-blur-sm p-2 flex items-center overflow-x-auto gap-3 shrink-0 z-[50] custom-scrollbar">
+      {/* History Bar for Mobile - Fixed Bottom */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 h-20 border-t border-slate-800 bg-slate-900/95 backdrop-blur-md p-2 flex items-center overflow-x-auto gap-3 shrink-0 z-[50] custom-scrollbar">
         {history.length === 0 ? (
-          <div className="w-full text-center text-slate-600 text-[10px] uppercase font-bold tracking-widest">No previous designs</div>
+          <div className="w-full text-center text-slate-600 text-[10px] uppercase font-bold tracking-widest opacity-50">No designs yet</div>
         ) : (
           history.map(item => (
-            <button key={item.id} onClick={() => loadFromHistory(item)} className="w-14 h-14 rounded-lg overflow-hidden shrink-0 border-2 border-transparent hover:border-blue-500 transition-all active:scale-95 shadow-lg">
+            <button key={item.id} onClick={() => loadFromHistory(item)} className="w-14 h-14 rounded-lg overflow-hidden shrink-0 border-2 border-transparent hover:border-blue-500 transition-all active:scale-95 shadow-md">
               <img src={item.imageUrl} alt="History item" className="w-full h-full object-cover" />
             </button>
           ))

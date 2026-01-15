@@ -8,11 +8,19 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script>
+    // Global shim for process.env to prevent ReferenceErrors if the environment doesn't provide it
+    if (typeof window.process === 'undefined') {
+      window.process = { env: { API_KEY: "" } };
+    }
+  </script>
   <style>
     body {
       font-family: 'Inter', sans-serif;
       background-color: #0f172a;
       color: #f8fafc;
+      margin: 0;
+      padding: 0;
     }
     .custom-scrollbar::-webkit-scrollbar {
       width: 6px;
@@ -65,6 +73,15 @@
       overflow-x: auto;
       overflow-y: hidden;
     }
+
+    /* Simple Fade-in for the chat window since tailwindcss-animate might not be available via CDN */
+    .chat-fade-in {
+      animation: fadeIn 0.3s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 <script type="importmap">
 {
@@ -74,6 +91,7 @@
     "@google/genai": "https://esm.sh/@google/genai@^1.36.0",
     "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react-dom": "https://esm.sh/react-dom@^19.2.3",
     "react-markdown": "https://esm.sh/react-markdown@^9.0.1",
     "remark-gfm": "https://esm.sh/remark-gfm@^4.0.0",
     "remark-math": "https://esm.sh/remark-math@^6.0.0",
