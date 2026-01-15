@@ -11,12 +11,12 @@ import {
   GenerationHistory,
   ChatMessage,
   SupportedLanguage 
-} from './types';
-import { generatePyramidImage, getChatResponse, generateSpeechData, playAudio } from './services/geminiService';
-import ControlPanel from './components/ControlPanel';
-import ImageDisplay from './components/ImageDisplay';
-import HistorySidebar from './components/HistorySidebar';
-import DocumentationModal from './components/DocumentationModal';
+} from './types.ts';
+import { generatePyramidImage, getChatResponse, generateSpeechData, playAudio } from './services/geminiService.ts';
+import ControlPanel from './components/ControlPanel.tsx';
+import ImageDisplay from './components/ImageDisplay.tsx';
+import HistorySidebar from './components/HistorySidebar.tsx';
+import DocumentationModal from './components/DocumentationModal.tsx';
 import { Layers, Info, MessageSquare, Send, Volume2, X, HelpCircle, Square, Play, RotateCcw, Loader2, VolumeX, Languages, Sun, Moon } from 'lucide-react';
 
 const TypewriterText: React.FC<{ 
@@ -64,7 +64,8 @@ const TypewriterText: React.FC<{
 
 const App: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    return (localStorage.getItem('pyragen-theme') as 'light' | 'dark') || 'dark';
+    const saved = localStorage.getItem('pyragen-theme');
+    return (saved as 'light' | 'dark') || 'dark';
   });
 
   const [params, setParams] = useState<GenerationParams>({
@@ -116,12 +117,6 @@ const App: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [chatMessages, typingMessageId, isChatLoading]);
-
-  useEffect(() => {
-    if (isChatOpen) {
-      setTimeout(() => chatInputRef.current?.focus(), 150);
-    }
-  }, [isChatOpen]);
 
   const toggleChat = () => {
     const newState = !isChatOpen;
@@ -212,11 +207,6 @@ const App: React.FC = () => {
     setPlayingAudioId(null);
   };
 
-  const handleRestartTypewriter = (id: string) => {
-    setTypewriterResetKeys(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
-    setTypingMessageId(id);
-  };
-
   const loadFromHistory = useCallback((item: GenerationHistory) => {
     setCurrentImage(item.imageUrl);
     setParams(item.params);
@@ -224,11 +214,13 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 overflow-hidden transition-colors duration-300">
+      {/* History Sidebar */}
       <div className="hidden lg:block w-72 border-r border-slate-200 dark:border-slate-800 shrink-0 h-screen overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900/40">
         <HistorySidebar history={history} onSelect={loadFromHistory} />
       </div>
 
       <main className="flex-1 flex flex-col relative h-screen overflow-hidden">
+        {/* Unified Header */}
         <header className="h-16 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md sticky top-0 z-[60] w-full shrink-0">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-lg shadow-lg shadow-blue-500/20">
@@ -238,18 +230,19 @@ const App: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-4">
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            {/* Theme Toggle Button Group */}
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-inner">
               <button 
                 onClick={() => setTheme('light')}
-                title="Light Mode"
-                className={`p-1.5 rounded-lg transition-all ${theme === 'light' ? 'bg-white text-amber-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                title="Switch to Light Mode"
+                className={`p-2 rounded-lg transition-all duration-200 ${theme === 'light' ? 'bg-white text-amber-500 shadow-sm scale-110' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 <Sun className="w-4 h-4" />
               </button>
               <button 
                 onClick={() => setTheme('dark')}
-                title="Dark Mode"
-                className={`p-1.5 rounded-lg transition-all ${theme === 'dark' ? 'bg-slate-700 text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
+                title="Switch to Dark Mode"
+                className={`p-2 rounded-lg transition-all duration-200 ${theme === 'dark' ? 'bg-slate-700 text-blue-400 shadow-sm scale-110' : 'text-slate-500 hover:text-slate-300'}`}
               >
                 <Moon className="w-4 h-4" />
               </button>
@@ -258,13 +251,13 @@ const App: React.FC = () => {
             <button 
               onClick={() => setIsDocsOpen(true)}
               className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"
-              title="Documentation"
+              title="View Documentation"
             >
               <HelpCircle className="w-5 h-5" />
             </button>
             <button 
               onClick={toggleChat} 
-              className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all border font-medium text-sm ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all border font-semibold text-sm ${
                 isChatOpen 
                 ? 'bg-blue-600 text-white border-blue-400 shadow-lg' 
                 : 'bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 border-blue-500/20'
@@ -276,6 +269,7 @@ const App: React.FC = () => {
           </div>
         </header>
 
+        {/* Content Area */}
         <div className="flex-1 overflow-y-auto custom-scrollbar relative z-0">
           <div className="flex flex-col xl:flex-row p-4 md:p-8 gap-8 max-w-7xl mx-auto w-full">
             <div className="w-full xl:w-96 shrink-0">
@@ -299,20 +293,21 @@ const App: React.FC = () => {
           <div className="h-24 lg:hidden" />
         </div>
 
+        {/* Floating Chat Window */}
         {isChatOpen && (
-          <div className="fixed bottom-4 right-4 w-[calc(100%-2rem)] md:w-[420px] max-h-[calc(100vh-6rem)] h-[650px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-3xl shadow-2xl flex flex-col z-[100] overflow-hidden chat-fade-in transition-colors duration-300">
+          <div className="fixed bottom-4 right-4 w-[calc(100%-2rem)] md:w-[420px] max-h-[calc(100vh-6rem)] h-[650px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-3xl shadow-2xl flex flex-col z-[100] overflow-hidden transition-all duration-300">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-md flex items-center justify-between">
-              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-medium">
-                <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-                PyraTutor
+              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold uppercase tracking-wider text-xs">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                PyraTutor AI
               </div>
               <div className="flex items-center gap-2">
                 <div className="relative group/lang flex items-center bg-white dark:bg-slate-700/60 rounded-lg px-2 py-1 border border-slate-200 dark:border-slate-600">
-                  <Languages className="w-3.5 h-3.5 text-slate-400 mr-1.5" />
+                  <Languages className="w-3 h-3 text-slate-400 mr-1" />
                   <select 
                     value={selectedLanguage}
                     onChange={(e) => setSelectedLanguage(e.target.value as SupportedLanguage)}
-                    className="bg-transparent text-[10px] font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer appearance-none uppercase tracking-widest pr-1"
+                    className="bg-transparent text-[10px] font-bold text-slate-700 dark:text-slate-200 outline-none cursor-pointer appearance-none uppercase tracking-widest"
                   >
                     <option value="English">EN</option>
                     <option value="Chinese">ZH</option>
@@ -320,7 +315,7 @@ const App: React.FC = () => {
                     <option value="Korean">KO</option>
                   </select>
                 </div>
-                <button onClick={() => { setIsChatOpen(false); stopAudio(); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+                <button onClick={() => { setIsChatOpen(false); stopAudio(); }} className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 rounded-lg transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -329,17 +324,15 @@ const App: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar bg-slate-50/50 dark:bg-slate-900/80">
               {chatMessages.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 text-center px-8">
-                  <div className="p-5 bg-blue-600/10 rounded-full mb-5 ring-1 ring-blue-500/30">
-                    <MessageSquare className="w-10 h-10 text-blue-500" />
-                  </div>
-                  <h3 className="text-slate-900 dark:text-white font-semibold mb-2 text-lg">Hello, Architect!</h3>
-                  <p className="text-sm leading-relaxed">I am <b>PyraTutor</b>, your expert consultant. I can assist with 3D geometry math, tile aesthetics, or general usage of PyraGen.</p>
+                  <MessageSquare className="w-10 h-10 mb-4 opacity-20" />
+                  <h3 className="text-slate-900 dark:text-white font-semibold mb-2">Architectural Assistant</h3>
+                  <p className="text-sm">I can help with parameters, color theory, or explaining 3D pyramid geometry.</p>
                 </div>
               )}
               {chatMessages.map((msg) => (
                 <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[92%] px-4 py-3 rounded-2xl relative group shadow-lg ${
-                    msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white dark:bg-slate-800/95 border border-slate-200 dark:border-slate-700/50 text-slate-900 dark:text-slate-200 rounded-bl-none'
+                  <div className={`max-w-[85%] px-4 py-3 rounded-2xl relative shadow-sm ${
+                    msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-200 rounded-bl-none'
                   }`}>
                     {msg.role === 'model' ? (
                       <div className="space-y-3">
@@ -349,21 +342,19 @@ const App: React.FC = () => {
                           onComplete={() => setTypingMessageId(null)} 
                           resetKey={typewriterResetKeys[msg.id] || 0}
                         />
-                        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-700/40">
-                          {msg.audioBase64 && (
-                            <button 
-                              onClick={() => handleToggleAudio(msg)}
-                              className={`p-1.5 rounded-lg transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${
-                                playingAudioId === msg.id 
-                                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/50' 
-                                : 'bg-slate-100 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-600'
-                              }`}
-                            >
-                              {playingAudioId === msg.id ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-                              {playingAudioId === msg.id ? 'Stop' : 'Listen'}
-                            </button>
-                          )}
-                        </div>
+                        {msg.audioBase64 && (
+                          <button 
+                            onClick={() => handleToggleAudio(msg)}
+                            className={`p-1.5 rounded-lg transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${
+                              playingAudioId === msg.id 
+                              ? 'bg-blue-500 text-white' 
+                              : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-blue-600'
+                            }`}
+                          >
+                            {playingAudioId === msg.id ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                            {playingAudioId === msg.id ? 'Stop' : 'Listen'}
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div className="text-sm font-medium">{msg.text}</div>
@@ -373,30 +364,30 @@ const App: React.FC = () => {
               ))}
               {isChatLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-white dark:bg-slate-800/90 px-4 py-3 rounded-2xl flex gap-2 items-center border border-slate-200 dark:border-slate-700/50">
+                  <div className="bg-white dark:bg-slate-800 px-4 py-3 rounded-2xl flex gap-2 items-center border border-slate-200 dark:border-slate-700">
                     <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
-                    <span className="text-xs text-slate-400 font-medium italic">PyraTutor is responding...</span>
+                    <span className="text-xs text-slate-400 italic font-medium">Consulting databases...</span>
                   </div>
                 </div>
               )}
               <div ref={chatEndRef} />
             </div>
 
-            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/95 backdrop-blur-md">
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
               <div className="relative">
                 <input 
                   ref={chatInputRef}
                   type="text" 
-                  placeholder={`Discuss in ${selectedLanguage}...`}
+                  placeholder="Ask PyraTutor..."
                   value={userMsg}
                   onChange={(e) => setUserMsg(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl py-3.5 pl-4 pr-12 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl py-3 pl-4 pr-12 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-all"
                 />
                 <button 
                   onClick={handleSendMessage}
                   disabled={isChatLoading || !userMsg.trim()}
-                  className="absolute right-2 top-2 p-2 text-blue-500 hover:text-blue-600 disabled:opacity-30 transition-all"
+                  className="absolute right-2 top-2 p-1.5 text-blue-500 hover:text-blue-600 disabled:opacity-30"
                 >
                   <Send className="w-5 h-5" />
                 </button>
@@ -407,18 +398,6 @@ const App: React.FC = () => {
 
         <DocumentationModal isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
       </main>
-
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 h-20 border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-2 flex items-center overflow-x-auto gap-3 shrink-0 z-[50] custom-scrollbar">
-        {history.length === 0 ? (
-          <div className="w-full text-center text-slate-400 text-[10px] uppercase font-bold tracking-widest opacity-50">No previous designs</div>
-        ) : (
-          history.map(item => (
-            <button key={item.id} onClick={() => loadFromHistory(item)} className="w-14 h-14 rounded-lg overflow-hidden shrink-0 border-2 border-transparent hover:border-blue-500 transition-all active:scale-95 shadow-md">
-              <img src={item.imageUrl} alt="History item" className="w-full h-full object-cover" />
-            </button>
-          ))
-        )}
-      </div>
     </div>
   );
 };

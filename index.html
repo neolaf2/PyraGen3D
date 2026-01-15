@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,9 +12,23 @@
     tailwind.config = {
       darkMode: 'class',
     }
-    
     // Global shim for process.env
     window.process = window.process || { env: { API_KEY: "" } };
+
+    // Global error handler
+    window.addEventListener('error', function(e) {
+      const root = document.getElementById('root');
+      if (root && (root.innerHTML === '' || root.innerText.includes('LOADING'))) {
+        console.error("Critical Load Error:", e);
+        root.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; text-align: center; color: #ef4444; padding: 20px;">
+            <h1 style="font-size: 24px; margin-bottom: 10px;">System Architecture Failure</h1>
+            <p style="color: #64748b; margin-bottom: 20px;">The 3D Engine failed to initialize.</p>
+            <pre style="background: #fee2e2; color: #7f1d1d; padding: 20px; border-radius: 12px; font-size: 12px; max-width: 100%; overflow: auto; text-align: left;">${e.message}</pre>
+          </div>
+        `;
+      }
+    });
   </script>
   <style>
     body {
@@ -25,22 +38,23 @@
       min-height: 100vh;
       overflow-x: hidden;
     }
+    /* Initialization state styling */
     #root:empty::after {
-      content: 'Initializing PyraGen Systems...';
+      content: 'PyraGen Engine Loading...';
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       font-size: 0.75rem;
-      color: #64748b;
-      font-weight: 600;
-      letter-spacing: 0.1em;
+      color: #3b82f6;
+      font-weight: 700;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
-      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      animation: pulse 1.5s ease-in-out infinite;
     }
     @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: .5; }
+      0%, 100% { opacity: 1; filter: blur(0px); }
+      50% { opacity: 0.3; filter: blur(1px); }
     }
     .custom-scrollbar::-webkit-scrollbar {
       width: 6px;
@@ -64,12 +78,12 @@
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
     "@google/genai": "https://esm.sh/@google/genai@1.3.1",
     "lucide-react": "https://esm.sh/lucide-react@0.460.0",
-    "react-markdown": "https://esm.sh/react-markdown@9.0.1",
-    "remark-gfm": "https://esm.sh/remark-gfm@4.0.0",
-    "remark-math": "https://esm.sh/remark-math@6.0.0",
-    "rehype-katex": "https://esm.sh/rehype-katex@7.0.0",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+    "react-markdown": "https://esm.sh/react-markdown@9.0.1?external=react,react-dom",
+    "remark-gfm": "https://esm.sh/remark-gfm@4.0.0?external=react,react-dom",
+    "remark-math": "https://esm.sh/remark-math@6.0.0?external=react,react-dom",
+    "rehype-katex": "https://esm.sh/rehype-katex@7.0.0?external=react,react-dom",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>
