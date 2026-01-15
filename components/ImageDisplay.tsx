@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Download, Share2, Expand, AlertCircle, Loader2, Wand2 } from 'lucide-react';
+import { Download, Share2, Expand, AlertCircle, Loader2, Wand2, CheckCircle2 } from 'lucide-react';
 import { GenerationParams } from '../types';
 import { editPyramidImage } from '../services/geminiService';
 
@@ -15,6 +15,7 @@ interface Props {
 const ImageDisplay: React.FC<Props> = ({ imageUrl, isGenerating, error, params, setCurrentImage }) => {
   const [editPrompt, setEditPrompt] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [isShared, setIsShared] = useState(false);
 
   const handleDownload = () => {
     if (!imageUrl) return;
@@ -22,6 +23,25 @@ const ImageDisplay: React.FC<Props> = ({ imageUrl, isGenerating, error, params, 
     link.href = imageUrl;
     link.download = `pyragen-${Date.now()}.png`;
     link.click();
+  };
+
+  const handleShare = () => {
+    if (!imageUrl) return;
+    
+    // Construct a shareable URL by encoding params (excluding referenceImage to avoid length issues)
+    const { referenceImage, ...shareableParams } = params;
+    const configString = btoa(JSON.stringify(shareableParams));
+    
+    // Use href split to get the base URL robustly, avoiding issues with origin/pathname duplication in some environments
+    const baseUrl = window.location.href.split('?')[0];
+    const shareUrl = `${baseUrl}?config=${configString}`;
+    
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setIsShared(true);
+      setTimeout(() => setIsShared(false), 3000);
+    }).catch(err => {
+      console.error('Could not copy URL: ', err);
+    });
   };
 
   const handleEdit = async () => {
@@ -78,14 +98,28 @@ const ImageDisplay: React.FC<Props> = ({ imageUrl, isGenerating, error, params, 
               <div className="absolute bottom-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button 
                   onClick={handleDownload}
-                  className="bg-white/10 backdrop-blur-md hover:bg-white/20 p-3 rounded-2xl text-white border border-white/20"
+                  title="Download Image"
+                  className="bg-slate-900/60 backdrop-blur-md hover:bg-slate-800 p-3 rounded-2xl text-white border border-white/10 transition-all hover:scale-105 active:scale-95"
                 >
                   <Download className="w-5 h-5" />
                 </button>
                 <button 
-                  className="bg-white/10 backdrop-blur-md hover:bg-white/20 p-3 rounded-2xl text-white border border-white/20"
+                  onClick={handleShare}
+                  title="Share Design Link"
+                  className={`backdrop-blur-md p-3 rounded-2xl border transition-all hover:scale-105 active:scale-95 flex items-center gap-2 ${
+                    isShared 
+                    ? 'bg-green-600 border-green-400 text-white' 
+                    : 'bg-slate-900/60 hover:bg-slate-800 text-white border-white/10'
+                  }`}
                 >
-                  <Share2 className="w-5 h-5" />
+                  {isShared ? (
+                    <>
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span className="text-xs font-bold pr-1">Link Copied!</span>
+                    </>
+                  ) : (
+                    <Share2 className="w-5 h-5" />
+                  )}
                 </button>
               </div>
             </>
@@ -100,14 +134,16 @@ const ImageDisplay: React.FC<Props> = ({ imageUrl, isGenerating, error, params, 
             placeholder="Edit render (e.g. 'Add a retro filter', 'Make it neon')"
             value={editPrompt}
             onChange={(e) => setEditPrompt(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleEdit()}
             className="flex-1 bg-slate-800 border border-slate-700 text-slate-300 text-sm rounded-xl px-4 py-2 outline-none focus:border-blue-500 transition-colors"
           />
           <button 
             onClick={handleEdit}
             disabled={isEditing || !editPrompt}
-            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 p-2 rounded-xl text-white transition-all"
+            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 p-2 px-4 rounded-xl text-white transition-all flex items-center gap-2"
           >
-            <Wand2 className="w-5 h-5" />
+            <Wand2 className="w-4 h-4" />
+            <span className="text-xs font-bold uppercase tracking-wider hidden sm:inline">Refine</span>
           </button>
         </div>
       )}

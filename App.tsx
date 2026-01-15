@@ -12,7 +12,7 @@ import ControlPanel from './components/ControlPanel';
 import ImageDisplay from './components/ImageDisplay';
 import HistorySidebar from './components/HistorySidebar';
 import DocumentationModal from './components/DocumentationModal';
-import { Layers, Box, Info, MessageSquare, Send, Volume2, X, HelpCircle } from 'lucide-react';
+import { Layers, Info, MessageSquare, Send, Volume2, X, HelpCircle } from 'lucide-react';
 
 const App: React.FC = () => {
   const [params, setParams] = useState<GenerationParams>({
@@ -48,17 +48,18 @@ const App: React.FC = () => {
     scrollToBottom();
   }, [chatMessages]);
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (overrideParams?: GenerationParams) => {
+    const activeParams = overrideParams || params;
     setIsGenerating(true);
     setError(null);
     try {
-      const imageUrl = await generatePyramidImage(params);
+      const imageUrl = await generatePyramidImage(activeParams);
       setCurrentImage(imageUrl);
       
       const newHistoryItem: GenerationHistory = {
         id: Date.now().toString(),
         imageUrl,
-        params: { ...params },
+        params: { ...activeParams },
         timestamp: Date.now(),
       };
       setHistory(prev => [newHistoryItem, ...prev].slice(0, 10));
@@ -68,6 +69,33 @@ const App: React.FC = () => {
       setIsGenerating(false);
     }
   };
+
+  // Hydrate from URL sharing link
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const config = urlParams.get('config');
+    if (config) {
+      try {
+        const decodedString = atob(config);
+        const sharedParams = JSON.parse(decodedString);
+        // Sanitize shared params
+        const hydratedParams = {
+          ...params,
+          ...sharedParams
+        };
+        setParams(hydratedParams);
+        
+        // Small timeout to ensure state is set before generating
+        setTimeout(() => handleGenerate(hydratedParams), 500);
+        
+        // Robustly clear URL to avoid re-generating on refresh
+        const baseUrl = window.location.href.split('?')[0];
+        window.history.replaceState({}, document.title, baseUrl);
+      } catch (e) {
+        console.error("Failed to parse shared architectural configuration", e);
+      }
+    }
+  }, []);
 
   const handleSendMessage = async () => {
     if (!userMsg.trim()) return;
@@ -102,7 +130,7 @@ const App: React.FC = () => {
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <header className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
+            <div className="bg-blue-600 p-2 rounded-lg shadow-lg shadow-blue-500/20">
               <Layers className="w-5 h-5 text-white" />
             </div>
             <h1 className="text-xl font-bold tracking-tight text-white">PyraGen <span className="text-blue-500 font-light">3D</span></h1>
@@ -130,7 +158,7 @@ const App: React.FC = () => {
             <ControlPanel 
               params={params} 
               setParams={setParams} 
-              onGenerate={handleGenerate} 
+              onGenerate={() => handleGenerate()} 
               isGenerating={isGenerating} 
             />
           </div>
