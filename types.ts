@@ -1,23 +1,19 @@
 
-export const TilePattern = {
-  MARBLE: 'Marble',
-  WOOD: 'Polished Wood',
-  STONE: 'Rough Stone',
-  GLASS: 'Frosted Glass',
-  METAL: 'Brushed Steel',
-  NEON: 'Glowing Neon',
-  MOSAIC: 'Colorful Mosaic',
-  CERAMIC: 'Glazed Ceramic'
-} as const;
+export enum TilePattern {
+  MARBLE = 'Marble',
+  WOOD = 'Polished Wood',
+  STONE = 'Rough Stone',
+  GLASS = 'Frosted Glass',
+  METAL = 'Brushed Steel',
+  NEON = 'Glowing Neon',
+  MOSAIC = 'Colorful Mosaic',
+  CERAMIC = 'Glazed Ceramic'
+}
 
-export type TilePattern = typeof TilePattern[keyof typeof TilePattern];
-
-export const PyramidBase = {
-  SQUARE: 'Square',
-  TRIANGULAR: 'Triangular'
-} as const;
-
-export type PyramidBase = typeof PyramidBase[keyof typeof PyramidBase];
+export enum PyramidBase {
+  SQUARE = 'Square',
+  TRIANGULAR = 'Triangular'
+}
 
 export type LightDirection = 'Top-Down' | 'Side-lit' | 'Frontal' | 'High-Contrast';
 
