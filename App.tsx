@@ -51,7 +51,7 @@ const TypewriterText: React.FC<{
   }, [resetKey]);
 
   return (
-    <div className="prose-chat overflow-hidden">
+    <div className="prose-chat overflow-hidden dark:prose-invert">
       <ReactMarkdown 
         remarkPlugins={[remarkGfm, remarkMath]} 
         rehypePlugins={[rehypeKatex]}
@@ -99,7 +99,6 @@ const App: React.FC = () => {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
 
-  // Apply theme to document
   useEffect(() => {
     const root = window.document.documentElement;
     if (theme === 'dark') {
@@ -153,24 +152,6 @@ const App: React.FC = () => {
       setIsGenerating(false);
     }
   };
-
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const config = urlParams.get('config');
-    if (config) {
-      try {
-        const decodedString = atob(config);
-        const sharedParams = JSON.parse(decodedString);
-        const hydratedParams = { ...params, ...sharedParams };
-        setParams(hydratedParams);
-        setTimeout(() => handleGenerate(hydratedParams), 500);
-        const baseUrl = window.location.href.split('?')[0];
-        window.history.replaceState({}, document.title, baseUrl);
-      } catch (e) {
-        console.error("Failed to parse shared architectural configuration", e);
-      }
-    }
-  }, []);
 
   const handleSendMessage = async () => {
     if (!userMsg.trim()) return;
@@ -243,13 +224,11 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 overflow-hidden transition-colors duration-300">
-      {/* History Sidebar */}
       <div className="hidden lg:block w-72 border-r border-slate-200 dark:border-slate-800 shrink-0 h-screen overflow-y-auto custom-scrollbar bg-white dark:bg-slate-900/40">
         <HistorySidebar history={history} onSelect={loadFromHistory} />
       </div>
 
       <main className="flex-1 flex flex-col relative h-screen overflow-hidden">
-        {/* Sticky Header */}
         <header className="h-16 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md sticky top-0 z-[60] w-full shrink-0">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-lg shadow-lg shadow-blue-500/20">
@@ -259,12 +238,11 @@ const App: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-4">
-            {/* Theme Toggle Button Group */}
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
               <button 
                 onClick={() => setTheme('light')}
                 title="Light Mode"
-                className={`p-1.5 rounded-lg transition-all ${theme === 'light' ? 'bg-white text-amber-500 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`p-1.5 rounded-lg transition-all ${theme === 'light' ? 'bg-white text-amber-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 <Sun className="w-4 h-4" />
               </button>
@@ -280,7 +258,7 @@ const App: React.FC = () => {
             <button 
               onClick={() => setIsDocsOpen(true)}
               className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all"
-              title="Help & Documentation"
+              title="Documentation"
             >
               <HelpCircle className="w-5 h-5" />
             </button>
@@ -288,7 +266,7 @@ const App: React.FC = () => {
               onClick={toggleChat} 
               className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all border font-medium text-sm ${
                 isChatOpen 
-                ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_15px_rgba(37,99,235,0.4)]' 
+                ? 'bg-blue-600 text-white border-blue-400 shadow-lg' 
                 : 'bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 border-blue-500/20'
               }`}
             >
@@ -298,7 +276,6 @@ const App: React.FC = () => {
           </div>
         </header>
 
-        {/* Scrollable Main Content */}
         <div className="flex-1 overflow-y-auto custom-scrollbar relative z-0">
           <div className="flex flex-col xl:flex-row p-4 md:p-8 gap-8 max-w-7xl mx-auto w-full">
             <div className="w-full xl:w-96 shrink-0">
@@ -322,9 +299,8 @@ const App: React.FC = () => {
           <div className="h-24 lg:hidden" />
         </div>
 
-        {/* Chatbot Overlay */}
         {isChatOpen && (
-          <div className="fixed bottom-4 right-4 w-[calc(100%-2rem)] md:w-[420px] max-h-[calc(100vh-6rem)] h-[650px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.15)] dark:shadow-[0_0_80px_rgba(0,0,0,0.8)] flex flex-col z-[100] overflow-hidden chat-fade-in transition-colors duration-300">
+          <div className="fixed bottom-4 right-4 w-[calc(100%-2rem)] md:w-[420px] max-h-[calc(100vh-6rem)] h-[650px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/60 rounded-3xl shadow-2xl flex flex-col z-[100] overflow-hidden chat-fade-in transition-colors duration-300">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-md flex items-center justify-between">
               <div className="flex items-center gap-2 text-slate-900 dark:text-white font-medium">
                 <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
@@ -387,26 +363,6 @@ const App: React.FC = () => {
                               {playingAudioId === msg.id ? 'Stop' : 'Listen'}
                             </button>
                           )}
-                          
-                          <button 
-                            onClick={() => {
-                              if (typingMessageId === msg.id) setTypingMessageId(null);
-                              else setTypingMessageId(msg.id);
-                            }}
-                            className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-600 transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
-                          >
-                            {typingMessageId === msg.id ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                            {typingMessageId === msg.id ? 'Pause' : 'Replay'}
-                          </button>
-
-                          <button 
-                            onClick={() => handleRestartTypewriter(msg.id)}
-                            className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-600 transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
-                            title="Restart text animation"
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            Restart
-                          </button>
                         </div>
                       </div>
                     ) : (
@@ -452,7 +408,6 @@ const App: React.FC = () => {
         <DocumentationModal isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
       </main>
 
-      {/* History Bar for Mobile */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 h-20 border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-2 flex items-center overflow-x-auto gap-3 shrink-0 z-[50] custom-scrollbar">
         {history.length === 0 ? (
           <div className="w-full text-center text-slate-400 text-[10px] uppercase font-bold tracking-widest opacity-50">No previous designs</div>
