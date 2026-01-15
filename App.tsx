@@ -1,9 +1,5 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
 import { 
   TilePattern, 
   PyramidBase, 
@@ -19,6 +15,7 @@ import HistorySidebar from './components/HistorySidebar.tsx';
 import DocumentationModal from './components/DocumentationModal.tsx';
 import { Layers, Info, MessageSquare, Send, Volume2, X, HelpCircle, Square, Play, RotateCcw, Loader2, VolumeX, Languages, Sun, Moon } from 'lucide-react';
 
+// Optimized Typewriter component
 const TypewriterText: React.FC<{ 
   text: string; 
   isTyping: boolean; 
@@ -26,46 +23,48 @@ const TypewriterText: React.FC<{
   resetKey: number;
 }> = ({ text, isTyping, onComplete, resetKey }) => {
   const [displayedText, setDisplayedText] = useState('');
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const timerRef = useRef<number | null>(null);
-
+  
   useEffect(() => {
-    if (isTyping) {
-      if (currentIndex < text.length) {
-        timerRef.current = window.setTimeout(() => {
-          setDisplayedText(prev => prev + text[currentIndex]);
-          setCurrentIndex(prev => prev + 1);
-        }, 12);
-      } else {
-        onComplete();
-      }
-    }
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, [currentIndex, isTyping, text, onComplete]);
-
-  useEffect(() => {
+    // Reset state when key changes
     setDisplayedText('');
-    setCurrentIndex(0);
   }, [resetKey]);
 
+  useEffect(() => {
+    if (!isTyping) {
+      setDisplayedText(text);
+      return;
+    }
+
+    let currentIndex = 0;
+    const intervalId = setInterval(() => {
+      if (currentIndex < text.length) {
+        setDisplayedText(prev => text.substring(0, currentIndex + 1));
+        currentIndex++;
+      } else {
+        clearInterval(intervalId);
+        onComplete();
+      }
+    }, 12);
+
+    return () => clearInterval(intervalId);
+  }, [isTyping, text, resetKey, onComplete]);
+
   return (
-    <div className="prose-chat overflow-hidden dark:prose-invert">
-      <ReactMarkdown 
-        remarkPlugins={[remarkGfm, remarkMath]} 
-        rehypePlugins={[rehypeKatex]}
-      >
-        {isTyping ? displayedText : (displayedText || text)}
-      </ReactMarkdown>
+    <div className="whitespace-pre-wrap leading-relaxed">
+      {displayedText}
     </div>
   );
 };
 
 const App: React.FC = () => {
+  // Initialize theme based on localStorage OR system preference
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('pyragen-theme');
-    return (saved as 'light' | 'dark') || 'dark';
+    if (saved) return saved as 'light' | 'dark';
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    return 'light';
   });
 
   const [params, setParams] = useState<GenerationParams>({
@@ -111,12 +110,17 @@ const App: React.FC = () => {
   }, [theme]);
 
   const scrollToBottom = () => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Small timeout to allow DOM to update
+    setTimeout(() => {
+      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 50);
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [chatMessages, typingMessageId, isChatLoading]);
+    if (isChatOpen) {
+      scrollToBottom();
+    }
+  }, [chatMessages, typingMessageId, isChatLoading, isChatOpen]);
 
   const toggleChat = () => {
     const newState = !isChatOpen;
