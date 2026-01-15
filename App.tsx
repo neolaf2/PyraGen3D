@@ -1,18 +1,67 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { 
   TilePattern, 
   PyramidBase, 
   GenerationParams, 
   GenerationHistory,
-  ChatMessage 
+  ChatMessage,
+  SupportedLanguage 
 } from './types';
-import { generatePyramidImage, getChatResponse, generateSpeech } from './services/geminiService';
+import { generatePyramidImage, getChatResponse, generateSpeechData, playAudio } from './services/geminiService';
 import ControlPanel from './components/ControlPanel';
 import ImageDisplay from './components/ImageDisplay';
 import HistorySidebar from './components/HistorySidebar';
 import DocumentationModal from './components/DocumentationModal';
-import { Layers, Info, MessageSquare, Send, Volume2, X, HelpCircle } from 'lucide-react';
+import { Layers, Info, MessageSquare, Send, Volume2, X, HelpCircle, Square, Play, RotateCcw, Loader2, VolumeX, Languages } from 'lucide-react';
+
+// Typewriter Sub-component with improved restart capability
+const TypewriterText: React.FC<{ 
+  text: string; 
+  isTyping: boolean; 
+  onComplete: () => void;
+  resetKey: number;
+}> = ({ text, isTyping, onComplete, resetKey }) => {
+  const [displayedText, setDisplayedText] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const timerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (isTyping) {
+      if (currentIndex < text.length) {
+        timerRef.current = window.setTimeout(() => {
+          setDisplayedText(prev => prev + text[currentIndex]);
+          setCurrentIndex(prev => prev + 1);
+        }, 12);
+      } else {
+        onComplete();
+      }
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [currentIndex, isTyping, text, onComplete]);
+
+  useEffect(() => {
+    setDisplayedText('');
+    setCurrentIndex(0);
+  }, [resetKey]);
+
+  return (
+    <div className="prose-chat overflow-hidden">
+      <ReactMarkdown 
+        remarkPlugins={[remarkGfm, remarkMath]} 
+        rehypePlugins={[rehypeKatex]}
+      >
+        {isTyping ? displayedText : (displayedText || text)}
+      </ReactMarkdown>
+    </div>
+  );
+};
 
 const App: React.FC = () => {
   const [params, setParams] = useState<GenerationParams>({
@@ -38,7 +87,16 @@ const App: React.FC = () => {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [userMsg, setUserMsg] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>('English');
+  
+  // Advanced Animation & Audio State
+  const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
+  const [typewriterResetKeys, setTypewriterResetKeys] = useState<Record<string, number>>({});
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const activeAudioRef = useRef<{ source: AudioBufferSourceNode; context: AudioContext } | null>(null);
+  
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -46,7 +104,22 @@ const App: React.FC = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [chatMessages]);
+  }, [chatMessages, typingMessageId, isChatLoading]);
+
+  // Focus chat input when opened
+  useEffect(() => {
+    if (isChatOpen) {
+      setTimeout(() => chatInputRef.current?.focus(), 150);
+    }
+  }, [isChatOpen]);
+
+  const toggleChat = () => {
+    const newState = !isChatOpen;
+    setIsChatOpen(newState);
+    if (newState) {
+      setTimeout(() => chatInputRef.current?.focus(), 150);
+    }
+  };
 
   const handleGenerate = async (overrideParams?: GenerationParams) => {
     const activeParams = overrideParams || params;
@@ -70,7 +143,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Hydrate from URL sharing link
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const config = urlParams.get('config');
@@ -78,17 +150,9 @@ const App: React.FC = () => {
       try {
         const decodedString = atob(config);
         const sharedParams = JSON.parse(decodedString);
-        // Sanitize shared params
-        const hydratedParams = {
-          ...params,
-          ...sharedParams
-        };
+        const hydratedParams = { ...params, ...sharedParams };
         setParams(hydratedParams);
-        
-        // Small timeout to ensure state is set before generating
         setTimeout(() => handleGenerate(hydratedParams), 500);
-        
-        // Robustly clear URL to avoid re-generating on refresh
         const baseUrl = window.location.href.split('?')[0];
         window.history.replaceState({}, document.title, baseUrl);
       } catch (e) {
@@ -99,21 +163,66 @@ const App: React.FC = () => {
 
   const handleSendMessage = async () => {
     if (!userMsg.trim()) return;
-    const msg = userMsg;
+    const msgText = userMsg;
+    const userId = Date.now().toString();
     setUserMsg('');
-    setChatMessages(prev => [...prev, { role: 'user', text: msg }]);
+    setChatMessages(prev => [...prev, { id: userId, role: 'user', text: msgText }]);
     setIsChatLoading(true);
 
     try {
-      const response = await getChatResponse(msg, chatMessages);
-      setChatMessages(prev => [...prev, { role: 'model', text: response }]);
-      await generateSpeech(response);
+      const responseText = await getChatResponse(msgText, chatMessages, selectedLanguage);
+      const audioData = await generateSpeechData(responseText);
+      const modelId = (Date.now() + 1).toString();
+      
+      setChatMessages(prev => [...prev, { 
+        id: modelId, 
+        role: 'model', 
+        text: responseText,
+        audioBase64: audioData || undefined 
+      }]);
+      setTypingMessageId(modelId);
+      setTypewriterResetKeys(prev => ({ ...prev, [modelId]: 0 }));
     } catch (err) {
       console.error(err);
-      setChatMessages(prev => [...prev, { role: 'model', text: "I'm sorry, I'm having trouble connecting to my architectural database right now." }]);
+      setChatMessages(prev => [...prev, { id: 'err', role: 'model', text: "I'm sorry, I'm having trouble connecting to my architectural database right now." }]);
     } finally {
       setIsChatLoading(false);
     }
+  };
+
+  const handleToggleAudio = async (msg: ChatMessage) => {
+    if (playingAudioId === msg.id) {
+      stopAudio();
+      return;
+    }
+
+    if (!msg.audioBase64) return;
+    
+    stopAudio();
+    setPlayingAudioId(msg.id);
+    try {
+      const playRes = await playAudio(msg.audioBase64, () => setPlayingAudioId(null));
+      activeAudioRef.current = playRes;
+    } catch (err) {
+      console.error("Audio playback error:", err);
+      setPlayingAudioId(null);
+    }
+  };
+
+  const stopAudio = () => {
+    if (activeAudioRef.current) {
+      try {
+        activeAudioRef.current.source.stop();
+        activeAudioRef.current.context.close();
+      } catch (e) {}
+      activeAudioRef.current = null;
+    }
+    setPlayingAudioId(null);
+  };
+
+  const handleRestartTypewriter = (id: string) => {
+    setTypewriterResetKeys(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+    setTypingMessageId(id);
   };
 
   const loadFromHistory = useCallback((item: GenerationHistory) => {
@@ -122,13 +231,14 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-200">
-      <div className="hidden lg:block w-72 border-r border-slate-800 shrink-0">
+    <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-200 overflow-hidden">
+      <div className="hidden lg:block w-72 border-r border-slate-800 shrink-0 h-screen overflow-y-auto custom-scrollbar">
         <HistorySidebar history={history} onSelect={loadFromHistory} />
       </div>
 
-      <main className="flex-1 flex flex-col overflow-hidden relative">
-        <header className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900/50 backdrop-blur-md sticky top-0 z-10">
+      <main className="flex-1 flex flex-col relative h-screen overflow-hidden">
+        {/* Sticky Header - Always on top */}
+        <header className="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-900/90 backdrop-blur-md sticky top-0 z-[60] w-full shrink-0">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-lg shadow-lg shadow-blue-500/20">
               <Layers className="w-5 h-5 text-white" />
@@ -144,105 +254,167 @@ const App: React.FC = () => {
               <HelpCircle className="w-5 h-5" />
             </button>
             <button 
-              onClick={() => setIsChatOpen(true)} 
-              className="flex items-center gap-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/20 px-4 py-1.5 rounded-full transition-all"
+              onClick={toggleChat} 
+              className={`flex items-center gap-2 px-4 py-1.5 rounded-full transition-all border font-medium text-sm ${
+                isChatOpen 
+                ? 'bg-blue-600 text-white border-blue-400' 
+                : 'bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border-blue-500/20'
+              }`}
             >
               <MessageSquare className="w-4 h-4" />
-              <span className="text-sm font-medium">Ask AI Consultant</span>
+              <span>Chat with PyraTutor</span>
             </button>
           </div>
         </header>
 
-        <div className="flex-1 flex flex-col xl:flex-row p-4 md:p-8 gap-8 overflow-y-auto custom-scrollbar">
-          <div className="w-full xl:w-96 shrink-0">
-            <ControlPanel 
-              params={params} 
-              setParams={setParams} 
-              onGenerate={() => handleGenerate()} 
-              isGenerating={isGenerating} 
-            />
-          </div>
+        {/* Scrollable Main Content */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          <div className="flex flex-col xl:flex-row p-4 md:p-8 gap-8">
+            <div className="w-full xl:w-96 shrink-0">
+              <ControlPanel params={params} setParams={setParams} onGenerate={() => handleGenerate()} isGenerating={isGenerating} />
+            </div>
 
-          <div className="flex-1 flex flex-col gap-6">
-            <ImageDisplay 
-              imageUrl={currentImage} 
-              isGenerating={isGenerating} 
-              error={error} 
-              params={params}
-              setCurrentImage={setCurrentImage}
-            />
-            
-            <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                <Info className="w-5 h-5 text-blue-500" />
-                Architectural Studio
-              </h3>
-              <p className="text-slate-400 text-sm leading-relaxed">
-                PyraGen combines advanced generative AI with granular lighting controls. Use the Chat Consultant to refine your design theory or learn more about tile patterns.
-              </p>
+            <div className="flex-1 flex flex-col gap-6">
+              <ImageDisplay imageUrl={currentImage} isGenerating={isGenerating} error={error} params={params} setCurrentImage={setCurrentImage} />
+              
+              <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <Info className="w-5 h-5 text-blue-500" />
+                  Architectural Studio
+                </h3>
+                <p className="text-slate-400 text-sm leading-relaxed">
+                  PyraGen combines advanced generative AI with granular lighting controls. Use <b>PyraTutor</b> to refine your design theory or learn more about tile patterns.
+                </p>
+              </div>
             </div>
           </div>
+          {/* Spacer for mobile fixed footer */}
+          <div className="h-24 lg:hidden" />
         </div>
 
-        {/* Chatbot Overlay */}
+        {/* Chatbot Overlay - FIXED POSITION so it floats above everything */}
         {isChatOpen && (
-          <div className="absolute right-4 bottom-4 w-96 max-h-[600px] h-[70vh] bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl flex flex-col z-50 overflow-hidden">
-            <div className="p-4 border-b border-slate-800 bg-slate-800/50 flex items-center justify-between">
+          <div className="fixed bottom-4 right-4 w-[calc(100%-2rem)] md:w-[400px] max-h-[calc(100vh-6rem)] h-[600px] bg-slate-900 border border-slate-700/50 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.6)] flex flex-col z-[100] overflow-hidden animate-in slide-in-from-bottom-10 duration-300">
+            <div className="p-4 border-b border-slate-800 bg-slate-800/80 backdrop-blur-md flex items-center justify-between">
               <div className="flex items-center gap-2 text-white font-medium">
-                <MessageSquare className="w-5 h-5 text-blue-500" />
-                AI Consultant
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                PyraTutor
               </div>
-              <button onClick={() => setIsChatOpen(false)} className="text-slate-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Language Selector */}
+                <div className="relative group/lang flex items-center bg-slate-700/50 rounded-lg px-2 py-1 border border-slate-600">
+                  <Languages className="w-3.5 h-3.5 text-slate-400 mr-1.5" />
+                  <select 
+                    value={selectedLanguage}
+                    onChange={(e) => setSelectedLanguage(e.target.value as SupportedLanguage)}
+                    className="bg-transparent text-[10px] font-bold text-slate-200 outline-none cursor-pointer appearance-none uppercase tracking-widest pr-1"
+                  >
+                    <option value="English" className="bg-slate-800 text-white">EN</option>
+                    <option value="Chinese" className="bg-slate-800 text-white">ZH</option>
+                    <option value="Spanish" className="bg-slate-800 text-white">ES</option>
+                    <option value="Korean" className="bg-slate-800 text-white">KO</option>
+                  </select>
+                </div>
+                <button onClick={() => { setIsChatOpen(false); stopAudio(); }} className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-700 transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
+            
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar bg-slate-900/60">
               {chatMessages.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-slate-500 text-center px-4">
-                  <p className="text-sm">Welcome Architect. I have the full system guide in my memory. Ask me anything about creating 3D pyramids!</p>
+                <div className="h-full flex flex-col items-center justify-center text-slate-500 text-center px-6">
+                  <div className="p-4 bg-blue-600/10 rounded-full mb-4 ring-1 ring-blue-500/20">
+                    <MessageSquare className="w-8 h-8 text-blue-500" />
+                  </div>
+                  <h3 className="text-white font-semibold mb-2">Hello, Architect!</h3>
+                  <p className="text-sm">I am <b>PyraTutor</b>. I can assist with 3D math, tile aesthetics, or general usage of PyraGen. How can I help today?</p>
                 </div>
               )}
-              {chatMessages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[85%] px-4 py-2 rounded-2xl text-sm relative group ${
-                    msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-200'
+              {chatMessages.map((msg) => (
+                <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[90%] px-4 py-3 rounded-2xl relative group shadow-xl ${
+                    msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-slate-800/90 backdrop-blur-sm border border-slate-700/40 text-slate-200 rounded-bl-none'
                   }`}>
-                    {msg.text}
-                    {msg.role === 'model' && (
-                      <button 
-                        onClick={() => generateSpeech(msg.text)}
-                        className="absolute -right-8 top-2 opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-blue-400"
-                      >
-                        <Volume2 className="w-4 h-4" />
-                      </button>
+                    {msg.role === 'model' ? (
+                      <div className="space-y-3">
+                        <TypewriterText 
+                          text={msg.text} 
+                          isTyping={typingMessageId === msg.id} 
+                          onComplete={() => setTypingMessageId(null)} 
+                          resetKey={typewriterResetKeys[msg.id] || 0}
+                        />
+                        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-700/40">
+                          {msg.audioBase64 && (
+                            <button 
+                              onClick={() => handleToggleAudio(msg)}
+                              className={`p-1.5 rounded-lg transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${
+                                playingAudioId === msg.id 
+                                ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/40' 
+                                : 'bg-slate-700/60 text-slate-300 hover:text-white hover:bg-slate-600'
+                              }`}
+                            >
+                              {playingAudioId === msg.id ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                              {playingAudioId === msg.id ? 'Stop Audio' : 'Listen'}
+                            </button>
+                          )}
+                          
+                          <button 
+                            onClick={() => {
+                              if (typingMessageId === msg.id) {
+                                setTypingMessageId(null);
+                              } else {
+                                setTypingMessageId(msg.id);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg bg-slate-700/60 text-slate-300 hover:text-white hover:bg-slate-600 transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
+                          >
+                            {typingMessageId === msg.id ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                            {typingMessageId === msg.id ? 'Pause' : 'Replay'}
+                          </button>
+
+                          <button 
+                            onClick={() => handleRestartTypewriter(msg.id)}
+                            className="p-1.5 rounded-lg bg-slate-700/60 text-slate-300 hover:text-white hover:bg-slate-600 transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
+                            title="Restart text animation"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            Restart
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-sm font-medium">{msg.text}</div>
                     )}
                   </div>
                 </div>
               ))}
               {isChatLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-slate-800 px-4 py-2 rounded-2xl flex gap-1 items-center">
-                    <div className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce" />
-                    <div className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce [animation-delay:0.2s]" />
-                    <div className="w-1.5 h-1.5 bg-slate-500 rounded-full animate-bounce [animation-delay:0.4s]" />
+                  <div className="bg-slate-800/80 px-4 py-3 rounded-2xl flex gap-1.5 items-center border border-slate-700/30">
+                    <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+                    <span className="text-xs text-slate-400 font-medium italic">PyraTutor is formulating a response...</span>
                   </div>
                 </div>
               )}
               <div ref={chatEndRef} />
             </div>
-            <div className="p-4 border-t border-slate-800 bg-slate-900">
+
+            <div className="p-4 border-t border-slate-800 bg-slate-900/90 backdrop-blur-md">
               <div className="relative">
                 <input 
+                  ref={chatInputRef}
                   type="text" 
-                  placeholder="Ask about features, patterns, or tips..."
+                  placeholder={`Discuss architecture in ${selectedLanguage}...`}
                   value={userMsg}
                   onChange={(e) => setUserMsg(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                  className="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-xl py-2.5 pl-4 pr-12 outline-none focus:border-blue-500 transition-colors"
+                  className="w-full bg-slate-800/80 border border-slate-700 text-white text-sm rounded-xl py-3 pl-4 pr-12 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-slate-500"
                 />
                 <button 
                   onClick={handleSendMessage}
-                  className="absolute right-2 top-1.5 p-1.5 text-blue-500 hover:text-blue-400"
+                  disabled={isChatLoading || !userMsg.trim()}
+                  className="absolute right-2 top-2 p-1.5 text-blue-500 hover:text-blue-400 disabled:opacity-30 transition-all"
                 >
                   <Send className="w-5 h-5" />
                 </button>
@@ -251,23 +423,17 @@ const App: React.FC = () => {
           </div>
         )}
 
-        <DocumentationModal 
-          isOpen={isDocsOpen} 
-          onClose={() => setIsDocsOpen(false)} 
-        />
+        <DocumentationModal isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
       </main>
 
-      <div className="lg:hidden h-20 border-t border-slate-800 bg-slate-900 p-2 flex items-center overflow-x-auto gap-3 shrink-0">
+      {/* History Bar for Mobile */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 h-20 border-t border-slate-800 bg-slate-900/95 backdrop-blur-sm p-2 flex items-center overflow-x-auto gap-3 shrink-0 z-[50] custom-scrollbar">
         {history.length === 0 ? (
-          <div className="w-full text-center text-slate-500 text-xs italic">No generations yet</div>
+          <div className="w-full text-center text-slate-600 text-[10px] uppercase font-bold tracking-widest">No previous designs</div>
         ) : (
           history.map(item => (
-            <button 
-              key={item.id} 
-              onClick={() => loadFromHistory(item)}
-              className="w-14 h-14 rounded-lg overflow-hidden shrink-0 border-2 border-transparent hover:border-blue-500 transition-all"
-            >
-              <img src={item.imageUrl} alt="History thumbnail" className="w-full h-full object-cover" />
+            <button key={item.id} onClick={() => loadFromHistory(item)} className="w-14 h-14 rounded-lg overflow-hidden shrink-0 border-2 border-transparent hover:border-blue-500 transition-all active:scale-95 shadow-lg">
+              <img src={item.imageUrl} alt="History item" className="w-full h-full object-cover" />
             </button>
           ))
         )}

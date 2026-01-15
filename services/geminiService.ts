@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Modality } from "@google/genai";
-import { GenerationParams } from "../types";
+import { GenerationParams, SupportedLanguage } from "../types";
 
 const APP_DOCUMENTATION = `
 PyraGen 3D Tile Architect Documentation:
@@ -16,7 +16,7 @@ PyraGen 3D Tile Architect Documentation:
   * Image Guide: Users can upload a reference image to influence the geometry and style of the generation.
 - Features:
   * Image Editing: Once generated, use the prompt box below the image to refine it (e.g., "Add rain", "Change tiles to gold").
-  * Text-to-Speech: The consultant (you) automatically speaks responses using high-quality TTS.
+  * Text-to-Speech: The consultant provides high-quality audio responses.
   * History: Previous designs are saved in the sidebar for the current session.
 `;
 
@@ -110,12 +110,14 @@ export const editPyramidImage = async (base64Image: string, editPrompt: string):
   }
 };
 
-export const getChatResponse = async (userMessage: string, history: any[]) => {
+export const getChatResponse = async (userMessage: string, history: any[], language: SupportedLanguage = 'English') => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const chat = ai.chats.create({
     model: 'gemini-3-pro-preview',
     config: {
-      systemInstruction: `You are an expert architectural consultant for the PyraGen 3D Tile Architect app. 
+      systemInstruction: `You are an expert architectural consultant for the PyraGen 3D Tile Architect app.
+      CRITICAL: You must respond ONLY in the following language: ${language}.
+      
       Use the following documentation to help users understand how to use the app and what its capabilities are:
       ${APP_DOCUMENTATION}
       
@@ -127,12 +129,24 @@ export const getChatResponse = async (userMessage: string, history: any[]) => {
   return response.text;
 };
 
-export const generateSpeech = async (text: string) => {
+export const generateSpeechData = async (text: string): Promise<string | null> => {
+  if (!text || text.trim().length === 0) return null;
+  
+  // Strip Markdown and LaTeX for smoother TTS and to prevent some 500 errors
+  const cleanText = text
+    .replace(/[*_#`~>|]/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\$\$[\s\S]*?\$\$/g, '')
+    .replace(/\$[\s\S]*?\$/g, '')
+    .replace(/\\begin\{.*?\}/g, '')
+    .replace(/\\end\{.*?\}/g, '')
+    .trim();
+
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text }] }],
+      contents: [{ parts: [{ text: cleanText }] }],
       config: {
         responseModalities: [Modality.AUDIO],
         speechConfig: {
@@ -143,29 +157,38 @@ export const generateSpeech = async (text: string) => {
       },
     });
 
-    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (!base64Audio) return null;
-
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-    const bytes = atob(base64Audio);
-    const len = bytes.length;
-    const array = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-      array[i] = bytes.charCodeAt(i);
+    const audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (!audioData) {
+      console.warn("Speech generation returned empty audio data.");
+      return null;
     }
-    
-    const dataInt16 = new Int16Array(array.buffer);
-    const buffer = audioContext.createBuffer(1, dataInt16.length, 24000);
-    const channelData = buffer.getChannelData(0);
-    for (let i = 0; i < dataInt16.length; i++) {
-      channelData[i] = dataInt16[i] / 32768.0;
-    }
-
-    const source = audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(audioContext.destination);
-    source.start();
+    return audioData;
   } catch (err) {
-    console.error("Speech generation error:", err);
+    console.error("Speech generation error detail:", err);
+    return null;
   }
+};
+
+export const playAudio = async (base64Audio: string, onEnded?: () => void) => {
+  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+  const bytes = atob(base64Audio);
+  const len = bytes.length;
+  const array = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    array[i] = bytes.charCodeAt(i);
+  }
+  
+  const dataInt16 = new Int16Array(array.buffer);
+  const buffer = audioContext.createBuffer(1, dataInt16.length, 24000);
+  const channelData = buffer.getChannelData(0);
+  for (let i = 0; i < dataInt16.length; i++) {
+    channelData[i] = dataInt16[i] / 32768.0;
+  }
+
+  const source = audioContext.createBufferSource();
+  source.buffer = buffer;
+  source.connect(audioContext.destination);
+  if (onEnded) source.onended = onEnded;
+  source.start();
+  return { source, context: audioContext };
 };

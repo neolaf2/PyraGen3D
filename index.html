@@ -7,6 +7,7 @@
   <title>PyraGen 3D Tile Architect</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
   <style>
     body {
       font-family: 'Inter', sans-serif;
@@ -23,6 +24,47 @@
       background: #475569;
       border-radius: 10px;
     }
+
+    /* Markdown & LaTeX Styling */
+    .prose-chat {
+      font-size: 0.875rem;
+      line-height: 1.5;
+    }
+    .prose-chat p { margin-bottom: 0.5rem; }
+    .prose-chat p:last-child { margin-bottom: 0; }
+    .prose-chat ul, .prose-chat ol { margin-bottom: 0.5rem; padding-left: 1.25rem; }
+    .prose-chat li { margin-bottom: 0.25rem; }
+    .prose-chat code { 
+      background: rgba(255,255,255,0.1); 
+      padding: 0.1rem 0.3rem; 
+      border-radius: 0.25rem; 
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    .prose-chat pre {
+      background: #1e293b;
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      margin-bottom: 0.5rem;
+    }
+    .prose-chat table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 0.5rem;
+      font-size: 0.75rem;
+    }
+    .prose-chat th, .prose-chat td {
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 0.4rem;
+      text-align: left;
+    }
+    .prose-chat th { background: rgba(255,255,255,0.05); }
+    
+    .katex-display {
+      margin: 0.5em 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
   </style>
 <script type="importmap">
 {
@@ -31,7 +73,11 @@
     "react": "https://esm.sh/react@^19.2.3",
     "@google/genai": "https://esm.sh/@google/genai@^1.36.0",
     "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react-markdown": "https://esm.sh/react-markdown@^9.0.1",
+    "remark-gfm": "https://esm.sh/remark-gfm@^4.0.0",
+    "remark-math": "https://esm.sh/remark-math@^6.0.0",
+    "rehype-katex": "https://esm.sh/rehype-katex@^7.0.0"
   }
 }
 </script>

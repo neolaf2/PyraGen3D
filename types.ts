@@ -17,6 +17,8 @@ export enum PyramidBase {
 
 export type LightDirection = 'Top-Down' | 'Side-lit' | 'Frontal' | 'High-Contrast';
 
+export type SupportedLanguage = 'English' | 'Chinese' | 'Spanish' | 'Korean';
+
 export interface GenerationParams {
   levels: number;
   baseSize: number;
@@ -38,6 +40,8 @@ export interface GenerationHistory {
 }
 
 export interface ChatMessage {
+  id: string;
   role: 'user' | 'model';
   text: string;
+  audioBase64?: string;
 }
