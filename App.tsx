@@ -13,19 +13,19 @@ import {
   SupportedLanguage,
   TextModelVersion
 } from './types';
-import { generatePyramidImage, getChatResponse, generateSpeechData, playAudio } from './services/geminiService';
+import { generatePyramidImage, getChatResponse, generateSpeechData, playAudio, transcribeUserAudio } from './services/geminiService';
+import { generateProceduralPyramid } from './services/proceduralService';
 import ControlPanel from './components/ControlPanel';
 import ImageDisplay from './components/ImageDisplay';
 import HistorySidebar from './components/HistorySidebar';
 import DocumentationModal from './components/DocumentationModal';
-import { Layers, Info, MessageSquare, Send, Volume2, X, HelpCircle, Square, Play, RotateCcw, Loader2, VolumeX, Languages, Sun, Moon, Zap } from 'lucide-react';
+import { Layers, Info, MessageSquare, Send, Volume2, X, HelpCircle, Loader2, VolumeX, Languages, Sun, Moon, Mic, StopCircle } from 'lucide-react';
 
 const TypewriterText: React.FC<{ 
   text: string; 
   isTyping: boolean; 
   onComplete: () => void;
-  resetKey: number;
-}> = ({ text, isTyping, onComplete, resetKey }) => {
+}> = ({ text, isTyping, onComplete }) => {
   const [displayedText, setDisplayedText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
   const timerRef = useRef<number | null>(null);
@@ -40,16 +40,14 @@ const TypewriterText: React.FC<{
       } else {
         onComplete();
       }
+    } else {
+       // Ensure full text is displayed if not typing (e.g. loaded from history or finished)
+       setDisplayedText(text);
     }
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [currentIndex, isTyping, text, onComplete]);
-
-  useEffect(() => {
-    setDisplayedText('');
-    setCurrentIndex(0);
-  }, [resetKey]);
 
   return (
     <div className="prose-chat overflow-hidden">
@@ -57,7 +55,7 @@ const TypewriterText: React.FC<{
         remarkPlugins={[remarkGfm, remarkMath]} 
         rehypePlugins={[rehypeKatex]}
       >
-        {isTyping ? displayedText : (displayedText || text)}
+        {isTyping ? displayedText : text}
       </ReactMarkdown>
     </div>
   );
@@ -95,12 +93,17 @@ const App: React.FC = () => {
   const [textModel, setTextModel] = useState<TextModelVersion>('gemini-3-flash-preview');
   
   const [typingMessageId, setTypingMessageId] = useState<string | null>(null);
-  const [typewriterResetKeys, setTypewriterResetKeys] = useState<Record<string, number>>({});
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const activeAudioRef = useRef<{ source: AudioBufferSourceNode; context: AudioContext } | null>(null);
   
   const chatEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
+
+  // Voice Input State
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   // Apply theme to document
   useEffect(() => {
@@ -140,7 +143,13 @@ const App: React.FC = () => {
     setIsGenerating(true);
     setError(null);
     try {
-      const imageUrl = await generatePyramidImage(activeParams);
+      let imageUrl = '';
+      if (activeParams.modelVersion === 'math-fractal-engine') {
+        imageUrl = await generateProceduralPyramid(activeParams);
+      } else {
+        imageUrl = await generatePyramidImage(activeParams);
+      }
+      
       setCurrentImage(imageUrl);
       
       const newHistoryItem: GenerationHistory = {
@@ -195,7 +204,6 @@ const App: React.FC = () => {
         audioBase64: audioData || undefined 
       }]);
       setTypingMessageId(modelId);
-      setTypewriterResetKeys(prev => ({ ...prev, [modelId]: 0 }));
     } catch (err) {
       console.error(err);
       setChatMessages(prev => [...prev, { id: 'err', role: 'model', text: "I'm sorry, I'm having trouble connecting to my architectural database right now." }]);
@@ -234,15 +242,82 @@ const App: React.FC = () => {
     setPlayingAudioId(null);
   };
 
-  const handleRestartTypewriter = (id: string) => {
-    setTypewriterResetKeys(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
-    setTypingMessageId(id);
-  };
-
   const loadFromHistory = useCallback((item: GenerationHistory) => {
     setCurrentImage(item.imageUrl);
     setParams(item.params);
   }, []);
+
+  // Voice Input Logic
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        // Create blob from chunks
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType || 'audio/webm' });
+        
+        // Stop all tracks to release microphone
+        stream.getTracks().forEach(track => track.stop());
+        
+        // Handle transcription
+        await handleTranscription(audioBlob);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      console.error("Error accessing microphone:", err);
+      // Fallback or alert could be added here
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      setIsTranscribing(true);
+    }
+  };
+
+  const handleMicClick = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  const handleTranscription = async (blob: Blob) => {
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = async () => {
+        const base64String = reader.result as string;
+        // Extract base64 data and mime type
+        const parts = base64String.split(',');
+        const base64Data = parts[1];
+        const mimeType = parts[0].match(/:(.*?);/)?.[1] || 'audio/webm';
+        
+        const text = await transcribeUserAudio(base64Data, mimeType);
+        if (text) {
+          setUserMsg(prev => prev ? `${prev} ${text}`.trim() : text);
+        }
+        setIsTranscribing(false);
+      };
+    } catch (e) {
+      console.error("Transcription failed", e);
+      setIsTranscribing(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 overflow-hidden transition-colors duration-300">
@@ -381,10 +456,9 @@ const App: React.FC = () => {
                           text={msg.text} 
                           isTyping={typingMessageId === msg.id} 
                           onComplete={() => setTypingMessageId(null)} 
-                          resetKey={typewriterResetKeys[msg.id] || 0}
                         />
-                        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-700/40">
-                          {msg.audioBase64 && (
+                        {msg.audioBase64 && (
+                          <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-700/40">
                             <button 
                               onClick={() => handleToggleAudio(msg)}
                               className={`p-1.5 rounded-lg transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${
@@ -396,28 +470,8 @@ const App: React.FC = () => {
                               {playingAudioId === msg.id ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
                               {playingAudioId === msg.id ? 'Stop' : 'Listen'}
                             </button>
-                          )}
-                          
-                          <button 
-                            onClick={() => {
-                              if (typingMessageId === msg.id) setTypingMessageId(null);
-                              else setTypingMessageId(msg.id);
-                            }}
-                            className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-600 transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
-                          >
-                            {typingMessageId === msg.id ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                            {typingMessageId === msg.id ? 'Pause' : 'Replay'}
-                          </button>
-
-                          <button 
-                            onClick={() => handleRestartTypewriter(msg.id)}
-                            className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-700/70 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-600 transition-all flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider"
-                            title="Restart text animation"
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            Restart
-                          </button>
-                        </div>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="text-sm font-medium">{msg.text}</div>
@@ -441,19 +495,36 @@ const App: React.FC = () => {
                 <input 
                   ref={chatInputRef}
                   type="text" 
-                  placeholder={`Discuss in ${selectedLanguage}...`}
+                  placeholder={isRecording ? "Listening..." : `Discuss in ${selectedLanguage}...`}
                   value={userMsg}
+                  disabled={isRecording || isTranscribing}
                   onChange={(e) => setUserMsg(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl py-3.5 pl-4 pr-12 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                  onKeyDown={(e) => e.key === 'Enter' && !isRecording && handleSendMessage()}
+                  className={`w-full bg-slate-50 dark:bg-slate-800 border ${isRecording ? 'border-red-500/50 ring-2 ring-red-500/10' : 'border-slate-200 dark:border-slate-700'} text-slate-900 dark:text-white text-sm rounded-xl py-3.5 pl-4 pr-24 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500`}
                 />
-                <button 
-                  onClick={handleSendMessage}
-                  disabled={isChatLoading || !userMsg.trim()}
-                  className="absolute right-2 top-2 p-2 text-blue-500 hover:text-blue-600 disabled:opacity-30 transition-all"
-                >
-                  <Send className="w-5 h-5" />
-                </button>
+                <div className="absolute right-2 top-2 flex items-center gap-1">
+                  <button
+                    onClick={handleMicClick}
+                    disabled={isChatLoading || isTranscribing}
+                    className={`p-2 rounded-lg transition-all ${
+                      isRecording 
+                      ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/30' 
+                      : isTranscribing 
+                        ? 'bg-slate-100 dark:bg-slate-700 text-slate-400 cursor-wait' 
+                        : 'text-slate-400 hover:text-blue-500 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`}
+                    title={isRecording ? "Stop Recording" : "Voice Input"}
+                  >
+                    {isTranscribing ? <Loader2 className="w-5 h-5 animate-spin" /> : isRecording ? <StopCircle className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                  </button>
+                  <button 
+                    onClick={handleSendMessage}
+                    disabled={isChatLoading || !userMsg.trim() || isRecording}
+                    className="p-2 text-blue-500 hover:text-blue-600 disabled:opacity-30 transition-all hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
+                  >
+                    <Send className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>

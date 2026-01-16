@@ -153,6 +153,30 @@ export const getChatResponse = async (
   return response.text;
 };
 
+export const transcribeUserAudio = async (base64Audio: string, mimeType: string): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: {
+        parts: [
+          { 
+            inlineData: { 
+              mimeType: mimeType, 
+              data: base64Audio 
+            } 
+          },
+          { text: "Transcribe this audio exactly as spoken. Return only the text transcription, no other commentary." }
+        ]
+      }
+    });
+    return response.text || "";
+  } catch (error) {
+    console.error("Audio transcription error:", error);
+    throw new Error("Failed to transcribe audio.");
+  }
+};
+
 export const generateSpeechData = async (text: string): Promise<string | null> => {
   if (!text || text.trim().length === 0) return null;
   

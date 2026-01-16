@@ -19,7 +19,7 @@ export type LightDirection = 'Top-Down' | 'Side-lit' | 'Frontal' | 'High-Contras
 
 export type SupportedLanguage = 'English' | 'Chinese' | 'Spanish' | 'Korean';
 
-export type ImageModelVersion = 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview';
+export type ImageModelVersion = 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview' | 'math-fractal-engine';
 
 export type TextModelVersion = 'gemini-3-flash-preview' | 'gemini-3-pro-preview';
 

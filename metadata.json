@@ -1,5 +1,7 @@
 {
   "name": "PyraGen3D",
   "description": "An advanced 3D tile pyramid generator that allows users to specify dimensions, patterns, and colors to create unique AI-generated isometric architectural renders.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }
